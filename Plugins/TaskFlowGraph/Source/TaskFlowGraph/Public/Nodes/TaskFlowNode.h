@@ -5,6 +5,9 @@
 #include "EdGraph/EdGraphNode.h"
 #include "TaskFlowNode.generated.h"
 
+class AActor;
+class APlayerState;
+class AGameStateBase;
 class UEdGraphPin;
 class UTaskFlowGraphSchema;
 class UTaskFlowNode;
@@ -68,6 +71,9 @@ public:
 	/** 右键菜单中的分类，默认读取 UCLASS 元数据 TaskFlowCategory */
 	virtual FText GetNodeCategory() const;
 
+	/** 节点名称，用于按名字查询运行状态等；默认返回对象名，子类可重写（如目标节点返回 NodeName） */
+	virtual FName GetNodeName() const;
+
 	/** 该节点在同一张图里是否只允许存在一个（Start 节点为 true） */
 	virtual bool IsUniqueNode() const;
 
@@ -102,6 +108,18 @@ public:
 	/** 获取当前执行本节点的 Runner（仅在 Execute 期间有效） */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UTaskFlowRunner* GetRunner() const;
+
+	/** 获取执行本节点的上下文（PlayerState 或 GameState 等），可能为空 */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	AActor* GetContext() const;
+
+	/** 获取个人任务所属的 PlayerState（个人任务时有效） */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	APlayerState* GetPlayerStateOwner() const;
+
+	/** 获取全局任务所属的 GameState（全局任务时有效） */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	AGameStateBase* GetGameStateOwner() const;
 
 	//~ Begin 黑板读写（转发到当前 Runner）
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Blackboard")

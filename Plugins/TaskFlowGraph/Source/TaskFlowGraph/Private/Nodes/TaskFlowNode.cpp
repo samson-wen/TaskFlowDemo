@@ -1,6 +1,9 @@
 #include "Nodes/TaskFlowNode.h"
 
 #include "EdGraph/EdGraphPin.h"
+#include "GameFramework/Actor.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
 #include "TaskFlowGraphSchema.h"
 #include "TaskFlowRunner.h"
 #include "TaskFlowTypes.h"
@@ -96,6 +99,11 @@ FText UTaskFlowNode::GetNodeCategory() const
 	return LOCTEXT("TaskFlowNode_DefaultCategory", "通用");
 }
 
+FName UTaskFlowNode::GetNodeName() const
+{
+	return GetFName();
+}
+
 bool UTaskFlowNode::IsUniqueNode() const
 {
 	return false;
@@ -188,6 +196,24 @@ void UTaskFlowNode::BeginExecution(UTaskFlowRunner* Runner)
 UTaskFlowRunner* UTaskFlowNode::GetRunner() const
 {
 	return ActiveRunner.Get();
+}
+
+AActor* UTaskFlowNode::GetContext() const
+{
+	UTaskFlowRunner* Runner = ActiveRunner.Get();
+	return Runner != nullptr ? Runner->GetContext() : nullptr;
+}
+
+APlayerState* UTaskFlowNode::GetPlayerStateOwner() const
+{
+	UTaskFlowRunner* Runner = ActiveRunner.Get();
+	return Runner != nullptr ? Runner->GetPlayerStateOwner() : nullptr;
+}
+
+AGameStateBase* UTaskFlowNode::GetGameStateOwner() const
+{
+	UTaskFlowRunner* Runner = ActiveRunner.Get();
+	return Runner != nullptr ? Runner->GetGameStateOwner() : nullptr;
 }
 
 bool UTaskFlowNode::SetBlackboardInt(FName Key, int32 Value)

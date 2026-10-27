@@ -110,3 +110,39 @@ bool UTaskFlowAction::GetBlackboardObject(FName Key, UObject*& OutValue) const
 	const UTaskFlowNode_Objective* Owner = OwningObjective.Get();
 	return Owner != nullptr && Owner->GetBlackboardObject(Key, OutValue);
 }
+
+void UTaskFlowAction::SetObjectiveProgress(int32 Value)
+{
+	UTaskFlowNode_Objective* Owner = OwningObjective.Get();
+	if (Owner != nullptr)
+	{
+		Owner->SetProgress(Value);
+	}
+}
+
+void UTaskFlowAction::AddObjectiveProgress(int32 Amount)
+{
+	UTaskFlowNode_Objective* Owner = OwningObjective.Get();
+	if (Owner != nullptr)
+	{
+		Owner->AddProgress(Amount);
+	}
+}
+
+AActor* UTaskFlowAction::GetContext() const
+{
+	UTaskFlowNode_Objective* Owner = OwningObjective.Get();
+	return Owner != nullptr ? Owner->GetContext() : nullptr;
+}
+
+APlayerState* UTaskFlowAction::GetPlayerStateOwner() const
+{
+	UTaskFlowNode_Objective* Owner = OwningObjective.Get();
+	return Owner != nullptr ? Owner->GetPlayerStateOwner() : nullptr;
+}
+
+AGameStateBase* UTaskFlowAction::GetGameStateOwner() const
+{
+	UTaskFlowNode_Objective* Owner = OwningObjective.Get();
+	return Owner != nullptr ? Owner->GetGameStateOwner() : nullptr;
+}

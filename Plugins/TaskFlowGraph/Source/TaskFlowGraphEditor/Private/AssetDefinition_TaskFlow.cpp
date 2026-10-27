@@ -1,5 +1,7 @@
 #include "AssetDefinition_TaskFlow.h"
 
+#include "Editor.h"
+#include "Subsystems/AssetEditorSubsystem.h"
 #include "TaskFlowAsset.h"
 #include "TaskFlowGraphEditorModule.h"
 
@@ -34,10 +36,17 @@ TConstArrayView<FAssetCategoryPath> UAssetDefinition_TaskFlow::GetAssetCategorie
 
 EAssetCommandResult UAssetDefinition_TaskFlow::OpenAssets(const FAssetOpenArgs& OpenArgs) const
 {
+	UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
 	FTaskFlowGraphEditorModule& EditorModule = FModuleManager::GetModuleChecked<FTaskFlowGraphEditorModule>("TaskFlowGraphEditor");
 
 	for (UTaskFlowAsset* Asset : OpenArgs.LoadObjects<UTaskFlowAsset>())
 	{
+		// 若该资产已打开，则聚焦已有编辑器，不重复打开
+		if (AssetEditorSubsystem->FindEditorForAsset(Asset, true) != nullptr)
+		{
+			continue;
+		}
+
 		EditorModule.CreateTaskFlowGraphEditor(OpenArgs.GetToolkitMode(), OpenArgs.ToolkitHost, Asset);
 	}
 

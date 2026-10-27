@@ -23,6 +23,7 @@ public:
 	//~ Begin UEdGraphNode Interface
 	virtual FText GetNodeTitle(ENodeTitleType::Type TitleType) const override;
 	virtual FText GetTooltipText() const override;
+	virtual FName GetNodeName() const override;
 	//~ End UEdGraphNode Interface
 
 	virtual void Execute_Implementation(UTaskFlowRunner* Runner) override;
@@ -30,6 +31,15 @@ public:
 	/** 目标内容描述，会显示在节点的悬浮提示和 Details 面板里 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Objective", meta = (MultiLine = true))
 	FText ObjectiveDescription;
+
+	/** 节点名称，同一资产内不可重复（留空表示未命名，不校验） */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Objective")
+	FName NodeName;
+
+	//~ Begin UObject Interface
+	virtual void PreEditChange(FProperty* PropertyAboutToChange) override;
+	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
+	//~ End UObject Interface
 
 	/** 该目标要执行的动作列表，按顺序依次执行 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Objective", Instanced)
@@ -55,6 +65,9 @@ public:
 	void OnActionFinished(UTaskFlowAction* Action);
 
 private:
+	/** 判断当前 NodeName 是否与图中其他目标节点重复 */
+	bool IsNodeNameDuplicate() const;
+
 	/** 继续执行下一个动作 */
 	void ExecuteNextAction();
 
@@ -69,4 +82,7 @@ private:
 
 	/** 动作是否已全部执行完 */
 	bool bActionsCompleted = false;
+
+	/** 编辑前的 NodeName，重复时用于回退 */
+	FName OldNodeName;
 };

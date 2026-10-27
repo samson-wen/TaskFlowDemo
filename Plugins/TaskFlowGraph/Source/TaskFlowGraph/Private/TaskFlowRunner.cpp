@@ -1,12 +1,15 @@
 #include "TaskFlowRunner.h"
 
 #include "Engine/World.h"
+#include "GameFramework/GameStateBase.h"
+#include "GameFramework/PlayerState.h"
+#include "Misc/MessageDialog.h"
 #include "Nodes/TaskFlowNode.h"
 #include "Nodes/TaskFlowNode_End.h"
 #include "Nodes/TaskFlowNode_Start.h"
 #include "TaskFlowAsset.h"
 
-UTaskFlowRunner* UTaskFlowRunner::StartTaskFlow(const UObject* WorldContextObject, UTaskFlowAsset* InAsset)
+UTaskFlowRunner* UTaskFlowRunner::StartTaskFlow(const UObject* WorldContextObject, UTaskFlowAsset* InAsset, AActor* InContext)
 {
 	if (InAsset == nullptr)
 	{
@@ -17,17 +20,25 @@ UTaskFlowRunner* UTaskFlowRunner::StartTaskFlow(const UObject* WorldContextObjec
 	Runner->AddToRoot();
 
 	Runner->WorldPtr = WorldContextObject != nullptr ? WorldContextObject->GetWorld() : nullptr;
-	Runner->Start(InAsset);
+	Runner->Start(InAsset, InContext);
 
 	return Runner;
 }
 
-void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset)
+void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset, AActor* InContext)
 {
 	if (InAsset == nullptr || bRunning)
 	{
 		return;
 	}
+
+	// 根据传入的上下文类型区分：PlayerState = 个人任务，GameState = 全局任务
+	Context = InContext;
+	PlayerStateOwner = Cast<APlayerState>(InContext);
+	GameStateOwner = Cast<AGameStateBase>(InContext);
+
+	// 校验上下文与资产任务类型是否一致（编辑器下弹窗提示）
+	ValidateContextType(InAsset, InContext);
 
 	Asset = InAsset;
 	bRunning = true;
@@ -381,4 +392,25 @@ bool UTaskFlowRunner::GetBlackboardObject(FName Key, UObject*& OutValue) const
 
 	OutValue = Entry->ObjectValue;
 	return true;
+}
+
+void UTaskFlowRunner::ValidateContextType(UTaskFlowAsset* InAsset, AActor* InContext)
+{
+#if WITH_EDITOR
+	if (InAsset == nullptr || InContext == nullptr)
+	{
+		return;
+	}
+
+	const ETaskFlowTaskType TaskType = InAsset->TaskType;
+
+	if (TaskType == ETaskFlowTaskType::Personal && Cast<AGameStateBase>(InContext) != nullptr)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("TaskFlowRunner", "TaskTypeMismatch_Personal", "该任务流程设置为「个人」任务，但运行时传入的是 GameState，参数与设置不一致。"));
+	}
+	else if (TaskType == ETaskFlowTaskType::World && Cast<APlayerState>(InContext) != nullptr)
+	{
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("TaskFlowRunner", "TaskTypeMismatch_World", "该任务流程设置为「世界」任务，但运行时传入的是 PlayerState，参数与设置不一致。"));
+	}
+#endif
 }

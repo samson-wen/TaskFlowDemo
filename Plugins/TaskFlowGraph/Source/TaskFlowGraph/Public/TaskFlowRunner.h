@@ -6,6 +6,9 @@
 #include "UObject/Object.h"
 #include "TaskFlowRunner.generated.h"
 
+class AActor;
+class AGameStateBase;
+class APlayerState;
 class UTaskFlowAsset;
 class UTaskFlowNode;
 class UWorld;
@@ -26,13 +29,13 @@ class TASKFLOWGRAPH_API UTaskFlowRunner : public UObject
 	GENERATED_BODY()
 
 public:
-	/** 开始执行一个任务流程，返回执行器实例 */
+	/** 开始执行一个任务流程，返回执行器实例；InContext 传入 PlayerState 表示个人任务，传入 GameState 表示全局任务 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject", DisplayName = "Start Task Flow"))
-	static UTaskFlowRunner* StartTaskFlow(const UObject* WorldContextObject, UTaskFlowAsset* InAsset);
+	static UTaskFlowRunner* StartTaskFlow(const UObject* WorldContextObject, UTaskFlowAsset* InAsset, AActor* InContext = nullptr);
 
 	/** 使用已有实例开始执行流程，世界通过 Outer（例如 UTaskFlowSystem）解析 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
-	void Start(UTaskFlowAsset* InAsset);
+	void Start(UTaskFlowAsset* InAsset, AActor* InContext = nullptr);
 
 	/** 中断流程 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
@@ -72,6 +75,38 @@ public:
 	bool GetBlackboardObject(FName Key, UObject*& OutValue) const;
 	//~ End 黑板读写
 
+	/** 传入的上下文（PlayerState 或 GameState 等） */
+	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
+	TObjectPtr<AActor> Context;
+
+	/** 个人任务所属的 PlayerState（传入 PlayerState 表示个人任务） */
+	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
+	TObjectPtr<APlayerState> PlayerStateOwner;
+
+	/** 全局任务所属的 GameState（传入 GameState 表示全局任务） */
+	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
+	TObjectPtr<AGameStateBase> GameStateOwner;
+
+	/** 获取传入的上下文 */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
+	AActor* GetContext() const { return Context.Get(); }
+
+	/** 获取个人任务所属的 PlayerState */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
+	APlayerState* GetPlayerStateOwner() const { return PlayerStateOwner.Get(); }
+
+	/** 获取全局任务所属的 GameState */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
+	AGameStateBase* GetGameStateOwner() const { return GameStateOwner.Get(); }
+
+	/** 是否为个人任务（传入了 PlayerState） */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
+	bool IsPersonalTask() const { return PlayerStateOwner.Get() != nullptr; }
+
+	/** 是否为全局任务（传入了 GameState） */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
+	bool IsGlobalTask() const { return GameStateOwner.Get() != nullptr; }
+
 	/** 正在执行的流程资产 */
 	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
 	TObjectPtr<UTaskFlowAsset> Asset;
@@ -95,6 +130,9 @@ protected:
 	void ClearAdvanceTimer();
 
 	void FinishFlow();
+
+	/** 校验上下文类型与资产任务类型是否一致（仅编辑器下弹窗提示） */
+	void ValidateContextType(UTaskFlowAsset* InAsset, AActor* InContext);
 
 protected:
 	/** 正在等待完成的节点 */

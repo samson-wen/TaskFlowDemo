@@ -4,6 +4,9 @@
 #include "UObject/Object.h"
 #include "TaskFlowNode_Condition.generated.h"
 
+class AActor;
+class APlayerState;
+class AGameStateBase;
 class UTaskFlowNode_IF;
 
 /**
@@ -32,6 +35,18 @@ public:
 
 	/** 内部：由 IF 节点调用，触发 Evaluate */
 	void Start(UTaskFlowNode_IF* InOwnerNode);
+
+	/** 获取评估该条件的上下文（PlayerState 或 GameState），可能为空 */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	AActor* GetContext() const;
+
+	/** 获取个人任务所属的 PlayerState（个人任务时有效） */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	APlayerState* GetPlayerStateOwner() const;
+
+	/** 获取全局任务所属的 GameState（全局任务时有效） */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	AGameStateBase* GetGameStateOwner() const;
 
 protected:
 	UPROPERTY(Transient)

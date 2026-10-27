@@ -18,7 +18,7 @@ void UTaskFlowSystem::Deinitialize()
 	Super::Deinitialize();
 }
 
-UTaskFlowRunner* UTaskFlowSystem::RunTaskFlow(UTaskFlowAsset* InAsset)
+UTaskFlowRunner* UTaskFlowSystem::RunTaskFlow(UTaskFlowAsset* InAsset, AActor* InContext)
 {
 	if (InAsset == nullptr)
 	{
@@ -33,7 +33,7 @@ UTaskFlowRunner* UTaskFlowSystem::RunTaskFlow(UTaskFlowAsset* InAsset)
 
 	ActiveRunners.Add(Runner);
 
-	Runner->Start(InAsset);
+	Runner->Start(InAsset, InContext);
 
 	return Runner;
 }
@@ -56,6 +56,32 @@ void UTaskFlowSystem::StopAllTaskFlows()
 			Runner->Stop();
 		}
 	}
+}
+
+UTaskFlowNode* UTaskFlowSystem::FindNodeByName(UTaskFlowAsset* InAsset, FName NodeName) const
+{
+	if (InAsset == nullptr || NodeName.IsNone())
+	{
+		return nullptr;
+	}
+
+	TArray<UTaskFlowNode*> AllNodes;
+	InAsset->GetAllNodes(AllNodes);
+	for (UTaskFlowNode* Node : AllNodes)
+	{
+		if (Node != nullptr && Node->GetNodeName() == NodeName)
+		{
+			return Node;
+		}
+	}
+
+	return nullptr;
+}
+
+ETaskFlowNodeState UTaskFlowSystem::GetNodeState(UTaskFlowAsset* InAsset, FName NodeName) const
+{
+	UTaskFlowNode* Node = FindNodeByName(InAsset, NodeName);
+	return Node != nullptr ? Node->GetNodeState() : ETaskFlowNodeState::NotExecuted;
 }
 
 void UTaskFlowSystem::HandleTaskFlowFinished(UTaskFlowRunner* Runner)

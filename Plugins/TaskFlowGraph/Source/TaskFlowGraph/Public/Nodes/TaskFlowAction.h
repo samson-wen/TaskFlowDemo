@@ -4,6 +4,9 @@
 #include "UObject/Object.h"
 #include "TaskFlowAction.generated.h"
 
+class AActor;
+class APlayerState;
+class AGameStateBase;
 class UTaskFlowNode_Objective;
 
 /**
@@ -38,6 +41,26 @@ public:
 	/** 获取所属目标节点 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UTaskFlowNode_Objective* GetOwnerObjective() const { return OwningObjective.Get(); }
+
+	/** 获取执行该动作的上下文（PlayerState 或 GameState），可能为空 */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	AActor* GetContext() const;
+
+	/** 获取个人任务所属的 PlayerState（个人任务时有效） */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	APlayerState* GetPlayerStateOwner() const;
+
+	/** 获取全局任务所属的 GameState（全局任务时有效） */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	AGameStateBase* GetGameStateOwner() const;
+
+	/** 设置所属目标节点的当前进度 */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
+	void SetObjectiveProgress(int32 Value);
+
+	/** 增加所属目标节点的当前进度 */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
+	void AddObjectiveProgress(int32 Amount);
 
 	//~ Begin 黑板读写（转发到所属目标节点）
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Blackboard")

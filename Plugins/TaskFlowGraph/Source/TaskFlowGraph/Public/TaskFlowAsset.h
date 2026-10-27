@@ -9,6 +9,16 @@ class UTaskFlowGraph;
 class UTaskFlowNode;
 class UTaskFlowNode_Start;
 
+/** 任务流程类型 */
+UENUM(BlueprintType)
+enum class ETaskFlowTaskType : uint8
+{
+	/** 个人任务 */
+	Personal UMETA(DisplayName = "个人"),
+	/** 世界（全局）任务 */
+	World    UMETA(DisplayName = "世界")
+};
+
 /**
  * 任务流程资产：在内容浏览器里右键创建，双击打开后是一张 Graph，
  * 里面放置 Start / End 以及各种自定义 TaskFlowNode 并连线。
@@ -28,6 +38,10 @@ public:
 	/** 可选的黑板数据，节点/动作在运行时读写其中的值 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TaskFlow")
 	TObjectPtr<UTaskFlowBlackboard> Blackboard;
+
+	/** 任务类型：个人 / 世界 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TaskFlow")
+	ETaskFlowTaskType TaskType = ETaskFlowTaskType::Personal;
 
 	UTaskFlowGraph* GetGraph() const { return Graph; }
 
