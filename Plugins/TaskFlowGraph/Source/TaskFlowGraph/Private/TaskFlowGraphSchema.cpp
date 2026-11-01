@@ -9,11 +9,15 @@
 #include "TaskFlowTypes.h"
 #include "UObject/UObjectHash.h"
 
+#if WITH_EDITOR
+#include "TaskFlowConnectionDrawingPolicy.h"
+#endif
+
 #define LOCTEXT_NAMESPACE "TaskFlowGraphSchema"
 
 namespace TaskFlowSchemaUtils
 {
-	/** 递归判断从 From 出发是否可以到达 To */
+	/** [EN] Recursively check whether To can be reached starting from From. [CN] 递归判断从 From 出发是否可以到达 To */
 	bool CanReach(const UEdGraphNode* From, const UEdGraphNode* To, TSet<const UEdGraphNode*>& Visited)
 	{
 		if (From == nullptr || To == nullptr)
@@ -57,7 +61,7 @@ namespace TaskFlowSchemaUtils
 		return false;
 	}
 
-	/** 在指定位置创建一个节点 */
+	/** [EN] Create a node of the given type at the specified location. [CN] 在指定位置创建一个节点 */
 	template <typename NodeType>
 	NodeType* SpawnNode(UEdGraph& Graph, const FVector2f& Location)
 	{
@@ -70,7 +74,8 @@ void UTaskFlowGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 {
 	const UTaskFlowGraph* TaskFlowGraph = Cast<UTaskFlowGraph>(ContextMenuBuilder.CurrentGraph);
 
-	// 图中已存在的唯一节点（例如 Start），不再提供创建入口
+	// [EN] Unique nodes already present in the graph (e.g. Start) are not offered for creation again.
+	// [CN] 图中已存在的唯一节点（例如 Start），不再提供创建入口
 	TSet<UClass*> ExistingUniqueClasses;
 	if (TaskFlowGraph != nullptr)
 	{
@@ -85,7 +90,8 @@ void UTaskFlowGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 		}
 	}
 
-	// 收集所有可实例化的 UTaskFlowNode 子类，自动生成菜单项
+	// [EN] Collect all instantiable UTaskFlowNode subclasses and generate menu entries automatically.
+	// [CN] 收集所有可实例化的 UTaskFlowNode 子类，自动生成菜单项
 	TArray<UClass*> NodeClasses;
 	GetDerivedClasses(UTaskFlowNode::StaticClass(), NodeClasses, true);
 
@@ -140,7 +146,8 @@ const FPinConnectionResponse UTaskFlowGraphSchema::CanCreateConnection(const UEd
 	UEdGraphNode* OutputNode = OutputPin->GetOwningNode();
 	UEdGraphNode* InputNode = InputPin->GetOwningNode();
 
-	// 不允许成环
+	// [EN] Disallow creating cycles.
+	// [CN] 不允许成环
 	TSet<const UEdGraphNode*> Visited;
 	if (TaskFlowSchemaUtils::CanReach(InputNode, OutputNode, Visited))
 	{
@@ -152,6 +159,8 @@ const FPinConnectionResponse UTaskFlowGraphSchema::CanCreateConnection(const UEd
 
 void UTaskFlowGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) const
 {
+	// [EN] Spawn the default Start node at (0,0) and the End node at (400,0).
+	// [CN] 在 (0,0) 生成 Start，在 (400,0) 生成 End
 	TaskFlowSchemaUtils::SpawnNode<UTaskFlowNode_Start>(Graph, FVector2f(0.f, 0.f));
 	TaskFlowSchemaUtils::SpawnNode<UTaskFlowNode_End>(Graph, FVector2f(400.f, 0.f));
 }
@@ -171,6 +180,17 @@ FLinearColor UTaskFlowGraphSchema::GetPinTypeColor(const FEdGraphPinType& PinTyp
 bool UTaskFlowGraphSchema::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const
 {
 	return true;
+}
+
+FConnectionDrawingPolicy* UTaskFlowGraphSchema::CreateConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj) const
+{
+#if WITH_EDITOR
+	// [EN] Use the custom policy so links can show an animated flow at runtime.
+	// [CN] 使用自定义策略，让连线在运行时能显示流动动效
+	return new FTaskFlowConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, InZoomFactor, InClippingRect, InDrawElements, InGraphObj);
+#else
+	return nullptr;
+#endif
 }
 
 #undef LOCTEXT_NAMESPACE

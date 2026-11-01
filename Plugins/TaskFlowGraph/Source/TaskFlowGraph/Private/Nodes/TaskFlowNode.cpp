@@ -17,10 +17,10 @@ UTaskFlowNode::UTaskFlowNode()
 void UTaskFlowNode::AllocateDefaultPins()
 {
 	UEdGraphPin* InputPin = CreatePin(EGPD_Input, TaskFlowConstants::PinCategory, TaskFlowConstants::PinName_Input);
-	InputPin->PinFriendlyName = LOCTEXT("TaskFlowNode_InputPin", "进入");
+	InputPin->PinFriendlyName = LOCTEXT("TaskFlowNode_InputPin", "In");
 
 	UEdGraphPin* OutputPin = CreatePin(EGPD_Output, TaskFlowConstants::PinCategory, TaskFlowConstants::PinName_Output);
-	OutputPin->PinFriendlyName = LOCTEXT("TaskFlowNode_OutputPin", "完成");
+	OutputPin->PinFriendlyName = LOCTEXT("TaskFlowNode_OutputPin", "Out");
 }
 
 FText UTaskFlowNode::GetNodeTitle(ENodeTitleType::Type TitleType) const
@@ -64,12 +64,12 @@ FLinearColor UTaskFlowNode::GetStateColor() const
 	switch (NodeState)
 	{
 	case ETaskFlowNodeState::Executing:
-		return FLinearColor(1.0f, 0.75f, 0.1f);   // 黄色
+		return FLinearColor(1.0f, 0.75f, 0.1f);   // [EN] Yellow [CN] 黄色
 	case ETaskFlowNodeState::Succeeded:
-		return FLinearColor(0.1f, 0.6f, 0.2f);    // 绿色
+		return FLinearColor(0.1f, 0.6f, 0.2f);    // [EN] Green [CN] 绿色
 	case ETaskFlowNodeState::NotExecuted:
 	default:
-		return FLinearColor(0.45f, 0.45f, 0.45f); // 灰色
+		return FLinearColor(0.45f, 0.45f, 0.45f); // [EN] Gray [CN] 灰色
 	}
 }
 
@@ -88,6 +88,11 @@ bool UTaskFlowNode::CanUserDeleteNode() const
 	return !IsUniqueNode();
 }
 
+bool UTaskFlowNode::CanDuplicateNode() const
+{
+	return !IsUniqueNode();
+}
+
 FText UTaskFlowNode::GetNodeCategory() const
 {
 	const FString MetaCategory = GetClass()->GetMetaData(TaskFlowConstants::MetaDataKey_NodeCategory);
@@ -96,7 +101,7 @@ FText UTaskFlowNode::GetNodeCategory() const
 		return FText::FromString(MetaCategory);
 	}
 
-	return LOCTEXT("TaskFlowNode_DefaultCategory", "通用");
+	return LOCTEXT("TaskFlowNode_DefaultCategory", "General");
 }
 
 FName UTaskFlowNode::GetNodeName() const
@@ -172,7 +177,8 @@ void UTaskFlowNode::CollectNodesFromPin(const UEdGraphPin* Pin, TArray<UTaskFlow
 
 void UTaskFlowNode::Execute_Implementation(UTaskFlowRunner* Runner)
 {
-	// 默认实现：执行完立即推进到下一个节点
+	// [EN] Default implementation: finish immediately and advance to the next node.
+	// [CN] 默认实现：执行完立即推进到下一个节点
 	FinishExecution();
 }
 

@@ -4,10 +4,15 @@
 #include "GameFramework/GameStateBase.h"
 #include "GameFramework/PlayerState.h"
 #include "Misc/MessageDialog.h"
+#include "Nodes/TaskFlowAction.h"
 #include "Nodes/TaskFlowNode.h"
 #include "Nodes/TaskFlowNode_End.h"
+#include "Nodes/TaskFlowNode_Objective.h"
 #include "Nodes/TaskFlowNode_Start.h"
 #include "TaskFlowAsset.h"
+#include "TaskFlowEvent.h"
+#include "TaskFlowSystem.h"
+#include "TaskFlowTypes.h"
 
 UTaskFlowRunner* UTaskFlowRunner::StartTaskFlow(const UObject* WorldContextObject, UTaskFlowAsset* InAsset, AActor* InContext)
 {
@@ -32,18 +37,21 @@ void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset, AActor* InContext)
 		return;
 	}
 
-	// 根据传入的上下文类型区分：PlayerState = 个人任务，GameState = 全局任务
+	// [EN] Distinguish by the context type passed in: PlayerState = personal task, GameState = global task.
+	// [CN] 根据传入的上下文类型区分：PlayerState = 个人任务，GameState = 全局任务
 	Context = InContext;
 	PlayerStateOwner = Cast<APlayerState>(InContext);
 	GameStateOwner = Cast<AGameStateBase>(InContext);
 
-	// 校验上下文与资产任务类型是否一致（编辑器下弹窗提示）
+	// [EN] Validate that the context matches the asset's task type (editor popup).
+	// [CN] 校验上下文与资产任务类型是否一致（编辑器下弹窗提示）
 	ValidateContextType(InAsset, InContext);
 
 	Asset = InAsset;
 	bRunning = true;
 
-	// 从资产黑板初始化运行时黑板
+	// [EN] Initialize the runtime blackboard from the asset blackboard.
+	// [CN] 从资产黑板初始化运行时黑板
 	BlackboardValues.Empty();
 	if (Asset->Blackboard.Get() != nullptr)
 	{
@@ -53,7 +61,8 @@ void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset, AActor* InContext)
 		}
 	}
 
-	// 重置所有节点状态为未执行
+	// [EN] Reset all node states to NotExecuted.
+	// [CN] 重置所有节点状态为未执行
 	TArray<UTaskFlowNode*> AllNodes;
 	InAsset->GetAllNodes(AllNodes);
 	for (UTaskFlowNode* Node : AllNodes)
@@ -68,6 +77,10 @@ void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset, AActor* InContext)
 	{
 		PendingNodes.Add(StartNode);
 	}
+
+	// [EN] Notify the outside world that the flow has started (before Advance so it always precedes the Finished event, even for synchronous flows).
+	// [CN] 向外广播“流程已开始”事件（在 Advance 之前，确保即便同步流程也先于“结束”事件发出）
+	EmitEventByName(TaskFlowConstants::EventName_Started, this, Asset.Get() != nullptr ? Asset->GetName() : FString());
 
 	Advance();
 }
@@ -84,7 +97,8 @@ void UTaskFlowRunner::Stop()
 
 	ClearAdvanceTimer();
 
-	// 手动停止：把所有节点重置为未执行（灰色）
+	// [EN] Manual stop: reset all nodes to NotExecuted (gray).
+	// [CN] 手动停止：把所有节点重置为未执行（灰色）
 	if (Asset.Get() != nullptr)
 	{
 		TArray<UTaskFlowNode*> AllNodes;
@@ -126,7 +140,8 @@ void UTaskFlowRunner::NotifyNodeFinished(UTaskFlowNode* Node)
 
 	CurrentNode = nullptr;
 
-	// 标记节点执行成功
+	// [EN] Mark the node as succeeded.
+	// [CN] 标记节点执行成功
 	Node->SetNodeState(ETaskFlowNodeState::Succeeded);
 
 	TArray<UTaskFlowNode*> NextNodes;
@@ -149,11 +164,78 @@ void UTaskFlowRunner::NotifyNodeFinished(UTaskFlowNode* Node)
 	}
 }
 
+void UTaskFlowRunner::DispatchEvent(const FTaskFlowEvent& Event)
+{
+	if (Asset.Get() == nullptr)
+	{
+		return;
+	}
+
+	TArray<UTaskFlowNode*> AllNodes;
+	Asset->GetAllNodes(AllNodes);
+
+	for (UTaskFlowNode* Node : AllNodes)
+	{
+		UTaskFlowNode_Objective* Objective = Cast<UTaskFlowNode_Objective>(Node);
+		if (Objective == nullptr || Objective->GetNodeState() != ETaskFlowNodeState::Executing)
+		{
+			continue;
+		}
+
+		// [EN] Only process Objectives that have event listening enabled, together with their unfinished actions.
+		// [CN] 只有目标节点开启了事件监听，才处理它本身及其未完成的动作
+		if (!Objective->bListenEvent)
+		{
+			continue;
+		}
+
+		ITaskFlowEventReceiver::Execute_ReceiveTaskFlowEvent(Objective, Event);
+
+		// [EN] Also dispatch to its actions that have not finished yet.
+		// [CN] 同时执行其尚未完成的动作
+		for (TObjectPtr<UTaskFlowAction>& ActionPtr : Objective->Actions)
+		{
+			UTaskFlowAction* Action = ActionPtr.Get();
+			if (Action != nullptr && !Action->IsFinished())
+			{
+				ITaskFlowEventReceiver::Execute_ReceiveTaskFlowEvent(Action, Event);
+			}
+		}
+	}
+}
+
+void UTaskFlowRunner::EmitEvent(const FTaskFlowEvent& Event)
+{
+	// [EN] Route the outbound event through the system so external listeners (global delegate + registered receivers) get it.
+	// [CN] 把出站事件交给 System 转发，使外部监听者（全局委托 + 已注册接收者）都能收到
+	UTaskFlowSystem* System = GetTaskFlowSystem();
+	if (System != nullptr)
+	{
+		System->BroadcastEventToExternal(Event);
+	}
+}
+
+void UTaskFlowRunner::EmitEventByName(FName EventName, UObject* Sender, const FString& Payload)
+{
+	FTaskFlowEvent Event;
+	Event.EventName = EventName;
+	Event.Sender = Sender;
+	Event.Payload = Payload;
+	EmitEvent(Event);
+}
+
+UTaskFlowSystem* UTaskFlowRunner::GetTaskFlowSystem() const
+{
+	UWorld* World = GetTaskFlowWorld();
+	return World != nullptr ? World->GetSubsystem<UTaskFlowSystem>() : nullptr;
+}
+
 void UTaskFlowRunner::Advance()
 {
 	if (bAdvancing)
 	{
-		// 已经在推进中（同步节点里调用了 FinishExecution），交给外层循环继续
+		// [EN] Already advancing (a synchronous node called FinishExecution); let the outer loop continue.
+		// [CN] 已经在推进中（同步节点里调用了 FinishExecution），交给外层循环继续
 		return;
 	}
 
@@ -163,7 +245,8 @@ void UTaskFlowRunner::Advance()
 	{
 		if (CurrentNode.Get() != nullptr)
 		{
-			// 有异步节点还没完成，等它调用 FinishExecution
+			// [EN] An asynchronous node has not finished; wait for it to call FinishExecution.
+			// [CN] 有异步节点还没完成，等它调用 FinishExecution
 			break;
 		}
 
@@ -183,7 +266,8 @@ void UTaskFlowRunner::Advance()
 
 		if (Node->IsA<UTaskFlowNode_End>())
 		{
-			// 到达 End 节点，标记成功，该分支结束
+			// [EN] Reached an End node: mark it succeeded and end this branch.
+			// [CN] 到达 End 节点，标记成功，该分支结束
 			Node->SetNodeState(ETaskFlowNodeState::Succeeded);
 			continue;
 		}
@@ -194,7 +278,8 @@ void UTaskFlowRunner::Advance()
 
 		if (StepDelaySeconds > 0.f)
 		{
-			// 步进模式：一个节点处理完就退出循环，由定时器安排下一个节点
+			// [EN] Step mode: exit the loop after handling one node; a timer schedules the next node.
+			// [CN] 步进模式：一个节点处理完就退出循环，由定时器安排下一个节点
 			break;
 		}
 	}
@@ -217,7 +302,12 @@ void UTaskFlowRunner::FinishFlow()
 
 	OnFinished.Broadcast(this);
 
-	// 流程结束后不再持有，外部（蓝图变量等）仍持有引用时对象继续存活
+	// [EN] Notify the outside world that the flow has finished (completed or aborted).
+	// [CN] 向外广播“流程已结束”事件（完成或中断都会触发）
+	EmitEventByName(TaskFlowConstants::EventName_Finished, this, Asset.Get() != nullptr ? Asset->GetName() : FString());
+
+	// [EN] No longer keep the object alive via root; it still lives if external references (e.g. Blueprint variables) hold it.
+	// [CN] 流程结束后不再持有，外部（蓝图变量等）仍持有引用时对象继续存活
 	RemoveFromRoot();
 }
 
@@ -226,7 +316,8 @@ void UTaskFlowRunner::ScheduleAdvance()
 	UWorld* World = GetTaskFlowWorld();
 	if (World == nullptr)
 	{
-		// 没有 World 时退化为立即推进
+		// [EN] No World available; fall back to advancing immediately.
+		// [CN] 没有 World 时退化为立即推进
 		Advance();
 		return;
 	}

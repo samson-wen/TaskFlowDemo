@@ -3,6 +3,8 @@
 #include "TaskFlowAssetFactory.h"
 #include "TaskFlowGraphEditorToolkit.h"
 
+// [EN] Editor module implementation for the TaskFlowGraph plugin.
+// [CN] TaskFlowGraph 插件的编辑器模块实现。
 IMPLEMENT_MODULE(FTaskFlowGraphEditorModule, TaskFlowGraphEditor)
 
 void FTaskFlowGraphEditorModule::StartupModule()

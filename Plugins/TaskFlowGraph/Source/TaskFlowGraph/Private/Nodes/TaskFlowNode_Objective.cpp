@@ -9,7 +9,7 @@
 
 UTaskFlowNode_Objective::UTaskFlowNode_Objective()
 {
-	ObjectiveDescription = LOCTEXT("TaskFlowNode_Objective_DefaultDescription", "完成此目标");
+	ObjectiveDescription = LOCTEXT("TaskFlowNode_Objective_DefaultDescription", "Complete this objective");
 }
 
 void UTaskFlowNode_Objective::PreEditChange(FProperty* PropertyAboutToChange)
@@ -36,12 +36,14 @@ void UTaskFlowNode_Objective::PostEditChangeProperty(FPropertyChangedEvent& Prop
 			UE_LOG(LogTemp, Warning, TEXT("TaskFlowNode_Objective：NodeName '%s' 已存在，已回退。"), *OldNodeName.ToString());
 		}
 
-		// 节点名变化，通知编辑器刷新标题显示
+		// [EN] Node name changed; notify the editor to refresh the title display.
+		// [CN] 节点名变化，通知编辑器刷新标题显示
 		UTaskFlowNode::OnNodeStateChanged().Broadcast(this);
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UTaskFlowNode_Objective, ObjectiveDescription))
 	{
-		// 描述变化，通知编辑器刷新标题显示
+		// [EN] Description changed; notify the editor to refresh the title display.
+		// [CN] 描述变化，通知编辑器刷新标题显示
 		UTaskFlowNode::OnNodeStateChanged().Broadcast(this);
 	}
 }
@@ -50,7 +52,8 @@ bool UTaskFlowNode_Objective::IsNodeNameDuplicate() const
 {
 	if (NodeName.IsNone())
 	{
-		// 未命名不校验
+		// [EN] Unnamed nodes are not validated.
+		// [CN] 未命名不校验
 		return false;
 	}
 
@@ -79,19 +82,22 @@ bool UTaskFlowNode_Objective::IsNodeNameDuplicate() const
 
 FText UTaskFlowNode_Objective::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	// 优先显示目标描述
+	// [EN] Prefer showing the objective description.
+	// [CN] 优先显示目标描述
 	if (!ObjectiveDescription.IsEmpty())
 	{
 		return ObjectiveDescription;
 	}
 
-	// 其次显示节点名称
+	// [EN] Then the node name.
+	// [CN] 其次显示节点名称
 	if (!NodeName.IsNone())
 	{
 		return FText::FromName(NodeName);
 	}
 
-	// 最后回退到类名（去掉 TaskFlowNode_ 前缀后的友好名，即 "Objective"）
+	// [EN] Finally fall back to the class name (friendly name after stripping the TaskFlowNode_ prefix, i.e. "Objective").
+	// [CN] 最后回退到类名（去掉 TaskFlowNode_ 前缀后的友好名，即 "Objective"）
 	return Super::GetNodeTitle(TitleType);
 }
 
@@ -102,7 +108,7 @@ FText UTaskFlowNode_Objective::GetTooltipText() const
 		return ObjectiveDescription;
 	}
 
-	return LOCTEXT("TaskFlowNode_Objective_Tooltip", "任务流程中的一个目标");
+	return LOCTEXT("TaskFlowNode_Objective_Tooltip", "An objective in the task flow");
 }
 
 FName UTaskFlowNode_Objective::GetNodeName() const
@@ -110,9 +116,22 @@ FName UTaskFlowNode_Objective::GetNodeName() const
 	return NodeName;
 }
 
+void UTaskFlowNode_Objective::PostPasteNode()
+{
+	Super::PostPasteNode();
+
+	// [EN] After paste the NodeName may collide with the original; clear it on collision to avoid uniqueness conflicts.
+	// [CN] 粘贴后 NodeName 可能与原节点重复，重复则清空，避免唯一性冲突
+	if (IsNodeNameDuplicate())
+	{
+		NodeName = NAME_None;
+	}
+}
+
 void UTaskFlowNode_Objective::Execute_Implementation(UTaskFlowRunner* Runner)
 {
-	// 从头开始执行 Actions 列表
+	// [EN] Execute the Actions list from the beginning.
+	// [CN] 从头开始执行 Actions 列表
 	CurrentActionIndex = 0;
 	CurrentProgress = 0;
 	bAdvancingActions = false;
@@ -125,7 +144,8 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 {
 	if (bAdvancingActions)
 	{
-		// 同步动作里 Finish 触发了递归回调，交给外层循环继续推进
+		// [EN] A synchronous action's Finish triggered a recursive callback; let the outer loop continue.
+		// [CN] 同步动作里 Finish 触发了递归回调，交给外层循环继续推进
 		return;
 	}
 
@@ -138,7 +158,8 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 
 		if (Action == nullptr)
 		{
-			// 空动作直接跳过
+			// [EN] Skip empty actions.
+			// [CN] 空动作直接跳过
 			continue;
 		}
 
@@ -146,7 +167,8 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 
 		if (!Action->IsFinished())
 		{
-			// 异步动作，等待它稍后调用 Finish()
+			// [EN] Asynchronous action: wait for it to call Finish() later.
+			// [CN] 异步动作，等待它稍后调用 Finish()
 			bAdvancingActions = false;
 			return;
 		}
@@ -154,7 +176,8 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 
 	bAdvancingActions = false;
 
-	// 动作全部完成，再结合进度判断是否真正完成
+	// [EN] All actions done; combine with progress to decide real completion.
+	// [CN] 动作全部完成，再结合进度判断是否真正完成
 	bActionsCompleted = true;
 	TryComplete();
 }
@@ -173,7 +196,8 @@ void UTaskFlowNode_Objective::TryComplete()
 
 	if (MaxProgress > 0 && CurrentProgress < MaxProgress)
 	{
-		// 还需要等待进度达标
+		// [EN] Still waiting for progress to reach the target.
+		// [CN] 还需要等待进度达标
 		return;
 	}
 
@@ -189,10 +213,17 @@ void UTaskFlowNode_Objective::SetProgress(int32 Value)
 {
 	CurrentProgress = Value;
 
-	// 通知编辑器刷新节点（更新进度显示）
+	// [EN] Notify the editor to refresh the node (updates the progress display).
+	// [CN] 通知编辑器刷新节点（更新进度显示）
 	UTaskFlowNode::OnNodeStateChanged().Broadcast(this);
 
 	TryComplete();
+}
+
+void UTaskFlowNode_Objective::ReceiveTaskFlowEvent_Implementation(const FTaskFlowEvent& Event)
+{
+	// [EN] No handling by default; override in subclasses / Blueprints.
+	// [CN] 默认不处理，子类 / 蓝图重写
 }
 
 #undef LOCTEXT_NAMESPACE

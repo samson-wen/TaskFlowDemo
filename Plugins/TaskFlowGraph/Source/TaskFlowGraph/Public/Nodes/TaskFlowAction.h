@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "TaskFlowEvent.h"
 #include "UObject/Object.h"
 #include "TaskFlowAction.generated.h"
 
@@ -10,59 +11,68 @@ class AGameStateBase;
 class UTaskFlowNode_Objective;
 
 /**
- * 任务动作基类：UTaskFlowNode_Objective 的 Actions 数组里的一项。
- * 开发者继承本类（C++ 或蓝图）并实现 Execute 即可自定义动作。
- * - 同步动作：Execute 里直接调用 Finish()；
- * - 异步动作：Execute 里不调用 Finish()，等事情做完（定时器、回调等）再调用 Finish()。
+ * [EN] Base class for task actions: an entry in the Actions array of UTaskFlowNode_Objective.
+ * [CN] 任务动作基类：UTaskFlowNode_Objective 的 Actions 数组里的一项。
+ * [EN] Developers inherit from this class (C++ or Blueprint) and implement Execute to define a custom action.
+ * [CN] 开发者继承本类（C++ 或蓝图）并实现 Execute 即可自定义动作。
+ * [EN] - Synchronous action: call Finish() directly inside Execute.
+ * [CN] - 同步动作：Execute 里直接调用 Finish()；
+ * [EN] - Asynchronous action: do not call Finish() inside Execute; call Finish() when the work is done (timer, callback, etc.).
+ * [CN] - 异步动作：Execute 里不调用 Finish()，等事情做完（定时器、回调等）再调用 Finish()。
  */
-UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced, meta = (DisplayName = "任务动作"))
-class TASKFLOWGRAPH_API UTaskFlowAction : public UObject
+UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced, meta = (DisplayName = "Task Action"))
+class TASKFLOWGRAPH_API UTaskFlowAction : public UObject, public ITaskFlowEventReceiver
 {
 	GENERATED_BODY()
 
 public:
-	/** 动作显示名，默认取类名（去掉 TaskFlowAction_ 前缀） */
+	/** [EN] Action display name; defaults to the class name (without the TaskFlowAction_ prefix). [CN] 动作显示名，默认取类名（去掉 TaskFlowAction_ 前缀） */
 	virtual FText GetActionName() const;
 
-	/** 执行动作，OwnerNode 为所属目标节点 */
+	/** [EN] Execute the action; OwnerNode is the owning Objective node. [CN] 执行动作，OwnerNode 为所属目标节点 */
 	UFUNCTION(BlueprintNativeEvent, Category = "TaskFlow")
 	void Execute(UTaskFlowNode_Objective* OwnerNode);
 
-	/** 通知所属节点本动作已完成，继续执行下一个动作 */
+	/** [EN] Notify the owning node that this action is finished, continuing the next action. [CN] 通知所属节点本动作已完成，继续执行下一个动作 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	void Finish();
 
-	/** 是否已完成 */
+	/** [EN] Whether finished. [CN] 是否已完成 */
 	bool IsFinished() const { return bFinished; }
 
-	/** 内部：由目标节点调用，触发 Execute */
+	/** [EN] Internal: called by the Objective node to trigger Execute. [CN] 内部：由目标节点调用，触发 Execute */
 	void Start(UTaskFlowNode_Objective* InOwnerNode);
 
-	/** 获取所属目标节点 */
+	/** [EN] Get the owning Objective node. [CN] 获取所属目标节点 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UTaskFlowNode_Objective* GetOwnerObjective() const { return OwningObjective.Get(); }
 
-	/** 获取执行该动作的上下文（PlayerState 或 GameState），可能为空 */
+	/** [EN] Get the context (PlayerState or GameState) executing this action; may be null. [CN] 获取执行该动作的上下文（PlayerState 或 GameState），可能为空 */
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	AActor* GetContext() const;
 
-	/** 获取个人任务所属的 PlayerState（个人任务时有效） */
+	/** [EN] Get the PlayerState for a personal task (valid for personal tasks). [CN] 获取个人任务所属的 PlayerState（个人任务时有效） */
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	APlayerState* GetPlayerStateOwner() const;
 
-	/** 获取全局任务所属的 GameState（全局任务时有效） */
+	/** [EN] Get the GameState for a global task (valid for global tasks). [CN] 获取全局任务所属的 GameState（全局任务时有效） */
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	AGameStateBase* GetGameStateOwner() const;
 
-	/** 设置所属目标节点的当前进度 */
+	/** [EN] Set the current progress of the owning Objective node. [CN] 设置所属目标节点的当前进度 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
 	void SetObjectiveProgress(int32 Value);
 
-	/** 增加所属目标节点的当前进度 */
+	/** [EN] Add to the current progress of the owning Objective node. [CN] 增加所属目标节点的当前进度 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
 	void AddObjectiveProgress(int32 Amount);
 
-	//~ Begin 黑板读写（转发到所属目标节点）
+	//~ Begin ITaskFlowEventReceiver Interface
+	virtual void ReceiveTaskFlowEvent_Implementation(const FTaskFlowEvent& Event) override;
+	//~ End ITaskFlowEventReceiver Interface
+
+	//~ Begin Blackboard read/write (forwarded to the owning Objective node)
+	//~ 黑板读写（转发到所属目标节点）
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Blackboard")
 	bool SetBlackboardInt(FName Key, int32 Value);
 	UFUNCTION(BlueprintPure, Category = "TaskFlow|Blackboard")
@@ -92,7 +102,7 @@ public:
 	bool SetBlackboardObject(FName Key, UObject* Value);
 	UFUNCTION(BlueprintPure, Category = "TaskFlow|Blackboard")
 	bool GetBlackboardObject(FName Key, UObject*& OutValue) const;
-	//~ End 黑板读写
+	//~ End Blackboard read/write
 
 protected:
 	UPROPERTY(Transient)

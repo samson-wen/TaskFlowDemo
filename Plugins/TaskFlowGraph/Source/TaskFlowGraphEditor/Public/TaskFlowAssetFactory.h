@@ -4,7 +4,7 @@
 #include "Factories/Factory.h"
 #include "TaskFlowAssetFactory.generated.h"
 
-/** 在内容浏览器里创建任务流程资产 */
+/** [EN] Creates a Task Flow asset in the Content Browser. [CN] 在内容浏览器里创建任务流程资产 */
 UCLASS(hidecategories = Object, collapsecategories)
 class UTaskFlowAssetFactory : public UFactory
 {

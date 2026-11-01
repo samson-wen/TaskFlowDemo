@@ -25,7 +25,7 @@ TConstArrayView<FAssetCategoryPath> UAssetDefinition_TaskFlowBlackboard::GetAsse
 {
 	static const FAssetCategoryPath Categories[] =
 	{
-		FAssetCategoryPath(EAssetCategoryPaths::Gameplay, LOCTEXT("TaskFlow_SubMenu", "任务流程"), ECategoryMenuType::Section)
+		FAssetCategoryPath(EAssetCategoryPaths::Gameplay, LOCTEXT("TaskFlow_SubMenu", "Task Flow"), ECategoryMenuType::Section)
 	};
 
 	return Categories;

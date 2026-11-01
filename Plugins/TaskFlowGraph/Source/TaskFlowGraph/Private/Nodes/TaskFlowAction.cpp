@@ -12,7 +12,8 @@ FText UTaskFlowAction::GetActionName() const
 
 void UTaskFlowAction::Execute_Implementation(UTaskFlowNode_Objective* OwnerNode)
 {
-	// 默认实现：同步完成
+	// [EN] Default implementation: finish synchronously.
+	// [CN] 默认实现：同步完成
 	Finish();
 }
 
@@ -145,4 +146,10 @@ AGameStateBase* UTaskFlowAction::GetGameStateOwner() const
 {
 	UTaskFlowNode_Objective* Owner = OwningObjective.Get();
 	return Owner != nullptr ? Owner->GetGameStateOwner() : nullptr;
+}
+
+void UTaskFlowAction::ReceiveTaskFlowEvent_Implementation(const FTaskFlowEvent& Event)
+{
+	// [EN] No handling by default; override in subclasses / Blueprints.
+	// [CN] 默认不处理，子类 / 蓝图重写
 }

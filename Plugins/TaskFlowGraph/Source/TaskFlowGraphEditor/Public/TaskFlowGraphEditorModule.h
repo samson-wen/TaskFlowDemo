@@ -12,6 +12,6 @@ public:
     virtual void StartupModule() override;
     virtual void ShutdownModule() override;
 
-    /** 打开一个任务流程资产的编辑器 */
+    /** [EN] Open an editor for a Task Flow asset. [CN] 打开一个任务流程资产的编辑器 */
     void CreateTaskFlowGraphEditor(const EToolkitMode::Type Mode, const TSharedPtr<IToolkitHost>& InitToolkitHost, UTaskFlowAsset* InAsset);
 };

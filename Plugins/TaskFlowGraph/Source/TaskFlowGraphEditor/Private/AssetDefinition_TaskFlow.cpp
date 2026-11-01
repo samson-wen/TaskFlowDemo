@@ -28,7 +28,7 @@ TConstArrayView<FAssetCategoryPath> UAssetDefinition_TaskFlow::GetAssetCategorie
 {
 	static const FAssetCategoryPath Categories[] =
 	{
-		FAssetCategoryPath(EAssetCategoryPaths::Gameplay, LOCTEXT("TaskFlow_SubMenu", "任务流程"), ECategoryMenuType::Section)
+		FAssetCategoryPath(EAssetCategoryPaths::Gameplay, LOCTEXT("TaskFlow_SubMenu", "Task Flow"), ECategoryMenuType::Section)
 	};
 
 	return Categories;
@@ -41,7 +41,8 @@ EAssetCommandResult UAssetDefinition_TaskFlow::OpenAssets(const FAssetOpenArgs& 
 
 	for (UTaskFlowAsset* Asset : OpenArgs.LoadObjects<UTaskFlowAsset>())
 	{
-		// 若该资产已打开，则聚焦已有编辑器，不重复打开
+		// [EN] If the asset is already open, focus the existing editor instead of opening a duplicate.
+		// [CN] 若该资产已打开，则聚焦已有编辑器，不重复打开
 		if (AssetEditorSubsystem->FindEditorForAsset(Asset, true) != nullptr)
 		{
 			continue;

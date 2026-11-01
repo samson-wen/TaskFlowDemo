@@ -6,8 +6,8 @@
 
 class UTaskFlowRunner;
 
-/** 流程结束节点，可以有多个，代表一条分支结束 */
-UCLASS(meta = (DisplayName = "结束", TaskFlowCategory = "流程"))
+/** [EN] Flow end node; there can be multiple, each marks the end of a branch. [CN] 流程结束节点，可以有多个，代表一条分支结束 */
+UCLASS(meta = (DisplayName = "End", TaskFlowCategory = "Flow"))
 class TASKFLOWGRAPH_API UTaskFlowNode_End : public UTaskFlowNode
 {
 	GENERATED_BODY()

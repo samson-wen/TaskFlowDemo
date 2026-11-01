@@ -28,6 +28,8 @@ void UTaskFlowAsset::GetAllNodes(TArray<UTaskFlowNode*>& OutNodes) const
 #if WITH_EDITOR
 UTaskFlowGraph* UTaskFlowAsset::CreateOrLoadGraph()
 {
+	// [EN] Create the graph with default Start / End nodes if it does not exist yet.
+	// [CN] 为空时创建并放置默认的 Start / End 节点
 	if (Graph.Get() == nullptr)
 	{
 		Graph = NewObject<UTaskFlowGraph>(this, UTaskFlowGraph::StaticClass(), TEXT("TaskFlowGraph"), RF_Transactional);

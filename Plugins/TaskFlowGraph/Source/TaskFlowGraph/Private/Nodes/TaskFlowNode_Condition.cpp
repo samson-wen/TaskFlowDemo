@@ -12,7 +12,8 @@ FText UTaskFlowNode_Condition::GetConditionName() const
 
 bool UTaskFlowNode_Condition::Evaluate_Implementation(UTaskFlowNode_IF* OwnerNode)
 {
-	// 默认实现：视为满足
+	// [EN] Default implementation: considered satisfied.
+	// [CN] 默认实现：视为满足
 	return true;
 }
 

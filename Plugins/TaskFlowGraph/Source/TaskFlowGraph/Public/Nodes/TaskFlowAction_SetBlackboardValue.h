@@ -6,10 +6,12 @@
 #include "TaskFlowAction_SetBlackboardValue.generated.h"
 
 /**
- * 设置黑板值的动作。
- * 配置 KeyName 与 ValueType，执行时把对应的值写入黑板。
+ * [EN] Action that sets a blackboard value.
+ * [CN] 设置黑板值的动作。
+ * [EN] Configure KeyName and ValueType; at execution the corresponding value is written into the blackboard.
+ * [CN] 配置 KeyName 与 ValueType，执行时把对应的值写入黑板。
  */
-UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced, meta = (DisplayName = "设置黑板值"))
+UCLASS(Blueprintable, EditInlineNew, DefaultToInstanced, meta = (DisplayName = "Set Blackboard Value"))
 class TASKFLOWGRAPH_API UTaskFlowAction_SetBlackboardValue : public UTaskFlowAction
 {
 	GENERATED_BODY()
@@ -20,11 +22,11 @@ public:
 	virtual FText GetActionName() const override;
 	virtual void Execute_Implementation(UTaskFlowNode_Objective* OwnerNode) override;
 
-	/** 要设置的黑板属性名 */
+	/** [EN] The blackboard key to set. [CN] 要设置的黑板属性名 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SetBlackboard")
 	FName KeyName = NAME_None;
 
-	/** 值类型（应与黑板条目类型一致） */
+	/** [EN] Value type (should match the blackboard entry type). [CN] 值类型（应与黑板条目类型一致） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "SetBlackboard")
 	ETaskFlowBlackboardValueType ValueType = ETaskFlowBlackboardValueType::Int;
 

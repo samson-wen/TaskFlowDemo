@@ -5,9 +5,12 @@
 #include "TaskFlowGraphSchema.generated.h"
 
 /**
- * 任务流图的 Schema：
- * - 右键菜单里列出所有可被创建的 UTaskFlowNode 子类
- * - 约束连线规则（输出 -> 输入，不允许成环）
+ * [EN] Schema for the task flow graph:
+ * [CN] 任务流图的 Schema：
+ * [EN] - Lists all creatable UTaskFlowNode subclasses in the right-click menu.
+ * [CN] - 右键菜单里列出所有可被创建的 UTaskFlowNode 子类
+ * [EN] - Enforces connection rules (output -> input, no cycles allowed).
+ * [CN] - 约束连线规则（输出 -> 输入，不允许成环）
  */
 UCLASS(MinimalAPI)
 class UTaskFlowGraphSchema : public UEdGraphSchema
@@ -22,5 +25,6 @@ public:
 	virtual void GetGraphDisplayInformation(const UEdGraph& Graph, FGraphDisplayInfo& DisplayInfo) const override;
 	virtual FLinearColor GetPinTypeColor(const FEdGraphPinType& PinType) const override;
 	virtual bool ShouldHidePinDefaultValue(UEdGraphPin* Pin) const override;
+	virtual FConnectionDrawingPolicy* CreateConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj) const override;
 	//~ End UEdGraphSchema Interface
 };

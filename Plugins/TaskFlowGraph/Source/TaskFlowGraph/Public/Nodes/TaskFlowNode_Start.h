@@ -6,8 +6,8 @@
 
 class UTaskFlowRunner;
 
-/** 流程入口节点，一张图里有且只有一个 */
-UCLASS(meta = (DisplayName = "开始", TaskFlowCategory = "流程"))
+/** [EN] Flow entry node; there is exactly one per graph. [CN] 流程入口节点，一张图里有且只有一个 */
+UCLASS(meta = (DisplayName = "Start", TaskFlowCategory = "Flow"))
 class TASKFLOWGRAPH_API UTaskFlowNode_Start : public UTaskFlowNode
 {
 	GENERATED_BODY()

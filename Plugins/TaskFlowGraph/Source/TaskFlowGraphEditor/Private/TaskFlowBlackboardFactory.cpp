@@ -20,7 +20,7 @@ UObject* UTaskFlowBlackboardFactory::FactoryCreateNew(UClass* InClass, UObject* 
 
 FText UTaskFlowBlackboardFactory::GetDisplayName() const
 {
-	return LOCTEXT("TaskFlowBlackboardFactory_DisplayName", "任务黑板");
+	return LOCTEXT("TaskFlowBlackboardFactory_DisplayName", "Task Flow Blackboard");
 }
 
 bool UTaskFlowBlackboardFactory::ShouldShowInNewMenu() const

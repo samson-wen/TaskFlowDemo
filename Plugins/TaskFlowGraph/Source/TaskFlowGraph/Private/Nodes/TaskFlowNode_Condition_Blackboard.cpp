@@ -2,11 +2,13 @@
 
 #include "Nodes/TaskFlowNode_IF.h"
 
+// [EN] Implementation of the blackboard comparison condition. Evaluate iterates over Checks and returns true only if every check passes.
+// [CN] 黑板比较条件的实现。Evaluate 遍历 Checks，只有全部满足时才返回 true。
 #define LOCTEXT_NAMESPACE "TaskFlowNode_Condition_Blackboard"
 
 FText UTaskFlowNode_Condition_Blackboard::GetConditionName() const
 {
-	return LOCTEXT("Condition_Blackboard_Name", "黑板比较条件");
+	return LOCTEXT("Condition_Blackboard_Name", "Blackboard Condition");
 }
 
 bool UTaskFlowNode_Condition_Blackboard::Evaluate_Implementation(UTaskFlowNode_IF* OwnerNode)

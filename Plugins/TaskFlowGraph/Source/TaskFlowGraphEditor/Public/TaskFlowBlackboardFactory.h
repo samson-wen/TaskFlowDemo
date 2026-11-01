@@ -4,7 +4,7 @@
 #include "Factories/Factory.h"
 #include "TaskFlowBlackboardFactory.generated.h"
 
-/** 在内容浏览器里创建任务黑板资产 */
+/** [EN] Creates a Task Flow Blackboard asset in the Content Browser. [CN] 在内容浏览器里创建任务黑板资产 */
 UCLASS(hidecategories = Object, collapsecategories)
 class UTaskFlowBlackboardFactory : public UFactory
 {

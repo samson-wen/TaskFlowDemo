@@ -3,7 +3,7 @@
 #include "AssetDefinitionDefault.h"
 #include "AssetDefinition_TaskFlowBlackboard.generated.h"
 
-/** 让内容浏览器认识 UTaskFlowBlackboard，双击用默认属性编辑器编辑条目 */
+/** [EN] Lets the Content Browser recognize UTaskFlowBlackboard; double-click opens it in the default property editor to edit entries. [CN] 让内容浏览器认识 UTaskFlowBlackboard，双击用默认属性编辑器编辑条目 */
 UCLASS()
 class UAssetDefinition_TaskFlowBlackboard : public UAssetDefinitionDefault
 {

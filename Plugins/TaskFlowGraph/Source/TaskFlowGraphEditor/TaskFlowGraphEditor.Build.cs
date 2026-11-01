@@ -17,13 +17,16 @@ public class TaskFlowGraphEditor : ModuleRules
                 "AssetDefinition",
                 "Slate",
                 "SlateCore",
-                "PropertyEditor"
+                "PropertyEditor",
+                "ApplicationCore"
             });
 
         PrivateDependencyModuleNames.AddRange(
             new string[]
             {
-                "TaskFlowGraph"
+                "TaskFlowGraph",
+                "Json",
+                "DesktopPlatform"
             });
     }
 }

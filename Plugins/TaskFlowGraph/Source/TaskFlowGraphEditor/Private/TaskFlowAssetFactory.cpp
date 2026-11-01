@@ -23,7 +23,7 @@ UObject* UTaskFlowAssetFactory::FactoryCreateNew(UClass* InClass, UObject* InPar
 
 FText UTaskFlowAssetFactory::GetDisplayName() const
 {
-	return LOCTEXT("TaskFlowAssetFactory_DisplayName", "任务流程");
+	return LOCTEXT("TaskFlowAssetFactory_DisplayName", "Task Flow");
 }
 
 bool UTaskFlowAssetFactory::ShouldShowInNewMenu() const
