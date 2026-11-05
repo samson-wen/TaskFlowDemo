@@ -20,7 +20,7 @@ FText UTaskFlowNode_End::GetNodeTitle(ENodeTitleType::Type TitleType) const
 
 FText UTaskFlowNode_End::GetTooltipText() const
 {
-	return LOCTEXT("TaskFlowNode_End_Tooltip", "End of a branch");
+	return LOCTEXT("TaskFlowNode_End_Tooltip", "End of the whole flow; stops all other executing nodes");
 }
 
 void UTaskFlowNode_End::Execute_Implementation(UTaskFlowRunner* Runner)

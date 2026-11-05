@@ -38,6 +38,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	virtual void Finish();
 
+	/**
+	 * [EN] Called when the whole flow ends (End / Stop). The base marks the action finished so late callbacks
+	 * cannot call Finish() and advance the flow; async subclasses override to release external bindings.
+	 * [CN] 整个流程结束（到达 End / 被停止）时调用；基类把动作标记为已完成，使迟到的回调无法再调用 Finish() 推进流程；
+	 * 异步子类需重写以释放外部绑定（委托、定时器等）。
+	 */
+	virtual void OnFlowEnded();
+
 	/** [EN] Whether finished. [CN] 是否已完成 */
 	bool IsFinished() const { return bFinished; }
 

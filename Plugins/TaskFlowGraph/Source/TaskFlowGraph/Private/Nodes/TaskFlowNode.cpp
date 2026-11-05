@@ -193,6 +193,12 @@ void UTaskFlowNode::FinishExecution()
 	}
 }
 
+void UTaskFlowNode::OnFlowEnded()
+{
+	// [CN] 流程已结束，断开 Runner，避免节点之后再通过 FinishExecution 试图推进流程。
+	ActiveRunner = nullptr;
+}
+
 void UTaskFlowNode::BeginExecution(UTaskFlowRunner* Runner)
 {
 	ActiveRunner = Runner;

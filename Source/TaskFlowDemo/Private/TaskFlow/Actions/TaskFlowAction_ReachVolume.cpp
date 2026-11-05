@@ -1,6 +1,8 @@
 #include "TaskFlow/Actions/TaskFlowAction_ReachVolume.h"
+#include "Nodes/TaskFlowNode_Objective.h"
 #include "TaskFlowSystem.h"
 #include "TaskFlow/GameTaskFlowTypes.h"
+#include "TaskFlowTypes.h"
 
 #define LOCTEXT_NAMESPACE "TaskFlowAction_ReachVolume"
 
@@ -23,9 +25,14 @@ void UTaskFlowAction_ReachVolume::Execute_Implementation(UTaskFlowNode_Objective
 	UTaskFlowSystem* System = GetTaskFlowSystem();
 	if (System != nullptr)
 	{
-		// [CN] 先清理可能残留的绑定（同一动作实例会跨多次运行复用），再绑定。
-		System->OnTaskFlowEvent.RemoveAll(this);
+		// [CN] 先清理可能残留的绑定（同一动作实例会跨多次运行复用），再绑定，并缓存所用 System。
+		UnbindFromTaskFlowEvent();
 		System->OnTaskFlowEvent.AddDynamic(this, &UTaskFlowAction_ReachVolume::OnTaskFlowEventReceived);
+		BoundSystem = System;
+
+		LogTaskFlowLifecycle(
+			GetNameSafe(GetOwnerObjective()), TEXT("EventBound"), GetName(),
+			*GetClass()->GetName(), TEXT("OnTaskFlowEvent"));
 	}
 }
 
@@ -60,8 +67,6 @@ void UTaskFlowAction_ReachVolume::OnTaskFlowEventReceived(const FTaskFlowEvent& 
 	{
 		return;
 	}
-
-	AddObjectiveProgress(1);
 	// [CN] 命中：完成本动作，目标节点将推进到下一个动作 / 完成。
 	Finish();
 }
@@ -70,10 +75,31 @@ void UTaskFlowAction_ReachVolume::Finish()
 {
 	Super::Finish();
 
-	// [CN] 完成后解除对 OnTaskFlowEvent 的绑定（Broadcast 内部会拷贝调用列表，此处修改实时列表是安全的）。
-	if (UTaskFlowSystem* System = GetTaskFlowSystem())
+	UnbindFromTaskFlowEvent();
+}
+
+void UTaskFlowAction_ReachVolume::OnFlowEnded()
+{
+	// [CN] 流程已结束：先解绑全局事件监听，再交给基类把本动作标记为已完成。
+	UnbindFromTaskFlowEvent();
+	Super::OnFlowEnded();
+}
+
+void UTaskFlowAction_ReachVolume::UnbindFromTaskFlowEvent()
+{
+	// [CN] 只使用绑定时缓存的 System：此时 ActiveRunner 往往已被清空，GetTaskFlowSystem() 会返回 nullptr，
+	//      若依赖它解绑就会整块跳过，导致委托残留、后续事件仍能触发本动作。
+	//      （Broadcast 内部拷贝调用列表，此处修改实时列表是安全的。）
+	UTaskFlowSystem* System = BoundSystem.Get();
+	if (System != nullptr)
 	{
 		System->OnTaskFlowEvent.RemoveAll(this);
+
+		LogTaskFlowLifecycle(
+			GetNameSafe(GetOwnerObjective()), TEXT("EventUnbound"), GetName(),
+			*GetClass()->GetName(), TEXT("OnTaskFlowEvent"));
 	}
+
+	BoundSystem.Reset();
 }
 #undef LOCTEXT_NAMESPACE

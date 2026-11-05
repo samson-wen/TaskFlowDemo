@@ -1,5 +1,7 @@
 #include "Nodes/TaskFlowAction_Log.h"
 
+#include "TaskFlowTypes.h"
+
 #define LOCTEXT_NAMESPACE "TaskFlowAction_Log"
 
 // [EN] Sample action that logs a message. Default message is set in the constructor.
@@ -16,7 +18,7 @@ FText UTaskFlowAction_Log::GetActionName() const
 
 void UTaskFlowAction_Log::Execute_Implementation(UTaskFlowNode_Objective* OwnerNode)
 {
-	UE_LOG(LogTemp, Log, TEXT("[TaskFlow] %s"), *Message);
+	UE_LOG(LogTaskFlow, Log, TEXT("[TaskFlow] %s"), *Message);
 
 	Finish();
 }

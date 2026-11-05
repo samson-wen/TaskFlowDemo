@@ -34,6 +34,12 @@ void UTaskFlowAction::Finish()
 	}
 }
 
+void UTaskFlowAction::OnFlowEnded()
+{
+	// [CN] 标记为已完成：之后即便有迟到的事件回调调用 Finish()，也会因 bFinished 直接返回，不再推进流程。
+	bFinished = true;
+}
+
 void UTaskFlowAction::Start(UTaskFlowNode_Objective* InOwnerNode)
 {
 	OwningObjective = InOwnerNode;

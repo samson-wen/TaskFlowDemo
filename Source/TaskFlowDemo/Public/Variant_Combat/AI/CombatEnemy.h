@@ -41,7 +41,20 @@ public:
 	/** Constructor */
 	ACombatEnemy();
 
+	/**
+	 * [EN] Task-flow identifier for this enemy, used by EVENT_ENEMY_DEATH to match KillTarget Objectives.
+	 * 0 means "unassigned" (matches objectives with AIID = 0 / any).
+	 * [CN] 该敌人在任务流中的标识，供 EVENT_ENEMY_DEATH 匹配 KillTarget 目标；0 表示未指定。
+	 */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category="Task Flow")
+	int64 AIID = 0;
+
+	int64 GetAIID() const { return AIID; }
+
 protected:
+
+	/** [EN] Actor that caused the last damage; used to resolve the killer when broadcasting the death event. [CN] 最后一次造成伤害的 Actor，用于在广播死亡事件时确定击杀者 */
+	TWeakObjectPtr<AActor> LastDamageCauser;
 
 	/** Max amount of HP the character will have on respawn */
 	UPROPERTY(EditAnywhere, Category="Damage")

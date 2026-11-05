@@ -25,10 +25,13 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTaskFlowFinished, UTaskFlowRunner
  *
  * [EN] Usage: UTaskFlowRunner::StartTaskFlow(WorldContext, TaskFlowAsset).
  * [CN] 用法：UTaskFlowRunner::StartTaskFlow(WorldContext, TaskFlowAsset)，
- * [EN] The executor starts from the Start node and follows the connections, executing each node in turn until there is no successor (or it reaches an End node).
- * [CN] 执行器会从 Start 节点开始，沿着连线依次执行每个节点，直到没有后继节点（或到达 End 节点）。
- * [EN] When one node's output pin connects to multiple nodes, it forms multiple branches; all branches must finish before the flow ends.
- * [CN] 一个节点的输出引脚连了多个节点时，会形成多条分支，所有分支都执行完才算流程结束。
+ * [EN] The executor starts from the Start node and follows the connections until there is no successor (or it reaches an End node).
+ * [CN] 执行器会从 Start 节点开始，沿着连线推进，直到没有后继节点（或到达 End 节点）。
+ * [EN] When one node's output pin connects to multiple nodes, all of them start together as one parallel batch;
+ * each branch then advances independently. The flow ends after every branch has finished, OR immediately when
+ * any End node is reached (all other active / pending nodes are stopped in that case).
+ * [CN] 一个节点的输出引脚连了多个节点时，这些节点作为同一批次一齐开始执行，各分支随后独立推进；
+ * 所有分支都执行完才算流程结束，但任一 End 节点被执行会立即终止整个流程，并停止其它所有激活 / 待执行节点。
  */
 UCLASS(BlueprintType)
 class TASKFLOWGRAPH_API UTaskFlowRunner : public UObject
@@ -51,9 +54,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	bool IsRunning() const;
 
-	/** [EN] The node currently waiting to finish (usually null during synchronous execution). [CN] 当前正在等待完成的节点（同步执行时通常为空） */
+	/** [EN] One of the nodes currently executing in parallel; returns nullptr when no branch is active. [CN] 当前并行执行的节点之一；没有活跃分支时返回 nullptr */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UTaskFlowNode* GetCurrentNode() const;
+
+	/** [EN] All nodes currently executing in parallel (one per active branch). [CN] 当前并行执行的所有节点（每条活跃分支一个） */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
+	void GetActiveNodes(TArray<UTaskFlowNode*>& OutNodes) const;
 
 	/** [EN] The World during execution; nodes can use it to get the TimerManager for async logic. [CN] 执行期间所在的 World，节点里可以用它拿 TimerManager 做异步逻辑 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
@@ -150,15 +157,18 @@ protected:
 
 	void FinishFlow();
 
+	/** [EN] Notify every node in the asset that the flow has ended, so Objective/Actions abort pending async work. [CN] 通知资产内所有节点流程已结束，让 Objective/Actions 终止未完成的异步工作 */
+	void NotifyNodesFlowEnded();
+
 	/** [EN] Validate that the context type matches the asset's task type (editor-only popup). [CN] 校验上下文类型与资产任务类型是否一致（仅编辑器下弹窗提示） */
 	void ValidateContextType(UTaskFlowAsset* InAsset, AActor* InContext);
 
 protected:
-	/** [EN] The node currently waiting to finish. [CN] 正在等待完成的节点 */
+	/** [EN] All nodes currently executing in parallel; each one is waiting for its own FinishExecution. [CN] 当前并行执行中的所有节点，各自等待自己的 FinishExecution */
 	UPROPERTY(Transient)
-	TObjectPtr<UTaskFlowNode> CurrentNode;
+	TArray<TObjectPtr<UTaskFlowNode>> ActiveNodes;
 
-	/** [EN] Nodes (branches) pending execution. [CN] 待执行的节点（分支） */
+	/** [EN] Nodes waiting to be started together as the next parallel batch. [CN] 待作为下一并行批次一起启动的节点 */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTaskFlowNode>> PendingNodes;
 

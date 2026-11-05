@@ -2,6 +2,20 @@
 
 #include "CoreMinimal.h"
 
+/** [EN] Log category for all task flow runtime logs (node lifecycle, actions, diagnostics). [CN] 任务流运行期日志类别（节点生命周期、动作、诊断信息） */
+TASKFLOWGRAPH_API DECLARE_LOG_CATEGORY_EXTERN(LogTaskFlow, Log, All);
+
+/**
+ * [EN] Shared formatter for every TaskFlow lifecycle log line; guarantees a uniform layout everywhere.
+ * [CN] 所有 TaskFlow 生命周期日志共用的格式化入口，保证各处格式完全一致。
+ * [EN] Format: [TaskFlow] Flow=<Asset> | Event=<Event> | Node=<Name> | Class=<Class> | Detail=<Detail>
+ */
+FORCEINLINE void LogTaskFlowLifecycle(const FString& FlowName, const TCHAR* Event, const FString& NodeName, const TCHAR* ClassName, const TCHAR* Detail)
+{
+	UE_LOG(LogTaskFlow, Log, TEXT("[TaskFlow] Flow=%s | Event=%s | Node=%s | Class=%s | Detail=%s"),
+		*FlowName, Event, *NodeName, ClassName, Detail);
+}
+
 /** [EN] Shared constants used by the task flow graph. [CN] 任务流图使用的公共常量 */
 namespace TaskFlowConstants
 {

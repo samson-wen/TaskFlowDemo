@@ -28,6 +28,7 @@
 #include "TaskFlowAsset.h"
 #include "TaskFlowGraph.h"
 #include "TaskFlowGraphSerializer.h"
+#include "TaskFlowTypes.h"
 
 #define LOCTEXT_NAMESPACE "TaskFlowGraphEditorToolkit"
 
@@ -709,7 +710,7 @@ void FTaskFlowGraphEditor::ImportFromJson()
 
 	if (!TaskFlowGraphSerializer::ImportGraphFromJson(TaskGraph, Json, Error))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Import Task Flow failed: %s"), *Error);
+		UE_LOG(LogTaskFlow, Warning, TEXT("[TaskFlow] Import failed: %s"), *Error);
 	}
 
 	TaskGraph->NotifyGraphChanged();

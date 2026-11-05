@@ -7,14 +7,14 @@
 #include "GameFramework/Character.h"
 
 #include "TaskFlowEvent.h"
-#include "TaskFlow/GameTaskFlowTypes.h"
 #include "TaskFlowSystem.h"
+#include "TaskFlow/GameTaskFlowTypes.h"
 
 void ATaskFlowVolume::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (bEnableCharacterOverlapEvent)
+	if (bEnableCharacterOverlapEvent && this->HasAuthority())
 	{
 		// [EN] Ensure the volume's brush reports overlaps so the events actually fire.
 		if (UBrushComponent* BrushComp = GetBrushComponent())

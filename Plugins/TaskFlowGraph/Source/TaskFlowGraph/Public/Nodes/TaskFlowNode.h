@@ -111,6 +111,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	void FinishExecution();
 
+	/**
+	 * [EN] Called by the Runner when the whole flow ends (reaches End / finishes / is stopped).
+	 * Subclasses must abort pending async work and release external bindings; the base detaches the Runner.
+	 * [CN] 整个流程结束（到达 End / 完成 / 被停止）时由 Runner 调用；子类必须终止未完成的异步工作并释放外部绑定，基类负责断开 Runner。
+	 */
+	virtual void OnFlowEnded();
+
 	/** [EN] Internal entry called by the Runner to record the Runner and trigger Execute. [CN] 内部入口，由 Runner 调用，用于记录 Runner 并触发 Execute */
 	void BeginExecution(UTaskFlowRunner* Runner);
 

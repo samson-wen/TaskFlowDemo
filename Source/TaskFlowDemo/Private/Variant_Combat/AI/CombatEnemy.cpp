@@ -11,6 +11,7 @@
 #include "TimerManager.h"
 #include "Components/SkeletalMeshComponent.h"
 #include "Animation/AnimInstance.h"
+#include "TaskFlow/GameTaskFlowStatics.h"
 
 ACombatEnemy::ACombatEnemy()
 {
@@ -246,6 +247,9 @@ void ACombatEnemy::HandleDeath()
 	// call the died delegate to notify any subscribers
 	OnEnemyDied.Broadcast();
 
+	// notify the task flow system: killer may be null (e.g. environmental damage), which is already handled
+	UGameTaskFlowStatics::BroadcastKillTargetTaskFlow(Cast<ACharacter>(LastDamageCauser.Get()), this);
+
 	// set up the death timer
 	GetWorld()->GetTimerManager().SetTimer(DeathTimer, this, &ACombatEnemy::RemoveFromLevel, DeathRemovalTime);
 }
@@ -278,6 +282,12 @@ float ACombatEnemy::TakeDamage(float Damage, struct FDamageEvent const& DamageEv
 	if (CurrentHP <= 0.0f)
 	{
 		return 0.0f;
+	}
+
+	// remember the last damage causer so HandleDeath() can resolve the killer
+	if (DamageCauser != nullptr)
+	{
+		LastDamageCauser = DamageCauser;
 	}
 
 	// reduce the current HP

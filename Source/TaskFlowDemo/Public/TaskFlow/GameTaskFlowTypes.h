@@ -7,8 +7,11 @@
 
 namespace GameTaskFlowEvents
 {
+	
 	const FName EVENT_TASKFLOW_VOLUME_ENTER(TEXT("EVENT_TASKFLOW_VOLUME_ENTER"));
 	const FName EVENT_TASKFLOW_VOLUME_LEAVE(TEXT("EVENT_TASKFLOW_VOLUME_LEAVE"));
+
+	const FName EVENT_ENEMY_DEATH(TEXT("EVENT_ENEMY_DEATH"));
 
 }
 
@@ -32,3 +35,20 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = "TaskFlow")
 	FString VolumeTag = "";
 };
+
+
+/**
+ * [EN] Payload for EVENT_ENEMY_DEATH, stored in FTaskFlowEvent::EventData.
+ * [CN] 敌人死亡事件的负载，存放在 FTaskFlowEvent::EventData 中。
+ */
+USTRUCT(BlueprintType)
+struct FTaskFlowKillTargetEvent
+{
+	GENERATED_BODY()
+
+public:
+	/** [EN] Task-flow identifier of the dead enemy; 0 means unassigned. [CN] 死亡敌人在任务流中的标识；0 表示未指定 */
+	UPROPERTY(BlueprintReadWrite, Category = "TaskFlow")
+	int64 AIID = 0;
+};
+
