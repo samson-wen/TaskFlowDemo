@@ -2,6 +2,8 @@
 
 #include "EdGraph/EdGraph.h"
 #include "Nodes/TaskFlowAction.h"
+#include "TaskFlowRunner.h"
+#include "TaskFlowSystem.h"
 #include "UObject/Field.h"
 #include "UObject/UnrealType.h"
 
@@ -137,6 +139,14 @@ void UTaskFlowNode_Objective::Execute_Implementation(UTaskFlowRunner* Runner)
 	bAdvancingActions = false;
 	bActionsCompleted = false;
 
+	// [CN] 本节点执行期间绑定到系统的 OnTaskFlowEvent 委托，自行接收事件（系统不再遍历内部节点）。
+	if (UTaskFlowSystem* System = Runner->GetTaskFlowSystem())
+	{
+		// [CN] 先移除旧绑定避免重复绑定（同一节点重复执行时），再绑定。
+		System->OnTaskFlowEvent.RemoveAll(this);
+		System->OnTaskFlowEvent.AddDynamic(this, &UTaskFlowNode_Objective::HandleTaskFlowEvent);
+	}
+
 	ExecuteNextAction();
 }
 
@@ -201,6 +211,15 @@ void UTaskFlowNode_Objective::TryComplete()
 		return;
 	}
 
+	// [CN] 完成时解除对 OnTaskFlowEvent 的绑定。
+	if (UTaskFlowRunner* LocalRunner = GetRunner())
+	{
+		if (UTaskFlowSystem* System = LocalRunner->GetTaskFlowSystem())
+		{
+			System->OnTaskFlowEvent.RemoveAll(this);
+		}
+	}
+
 	FinishExecution();
 }
 
@@ -220,10 +239,23 @@ void UTaskFlowNode_Objective::SetProgress(int32 Value)
 	TryComplete();
 }
 
-void UTaskFlowNode_Objective::ReceiveTaskFlowEvent_Implementation(const FTaskFlowEvent& Event)
+void UTaskFlowNode_Objective::HandleTaskFlowEvent(const FTaskFlowEvent& Event)
 {
-	// [EN] No handling by default; override in subclasses / Blueprints.
-	// [CN] 默认不处理，子类 / 蓝图重写
+	// [CN] 仅在本节点正在执行时处理（避免流程被中断 / 停止后仍接收事件）。
+	if (GetNodeState() != ETaskFlowNodeState::Executing)
+	{
+		return;
+	}
+
+	// [CN] 节点内自行监听并向尚未完成的动作转发事件（系统不再遍历内部节点，由各节点自行处理）。
+	for (TObjectPtr<UTaskFlowAction>& ActionPtr : Actions)
+	{
+		UTaskFlowAction* Action = ActionPtr.Get();
+		if (Action != nullptr && !Action->IsFinished())
+		{
+			Action->ReceiveTaskFlowEvent(Event);
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

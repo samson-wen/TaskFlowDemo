@@ -9,6 +9,7 @@ class AActor;
 class APlayerState;
 class AGameStateBase;
 class UTaskFlowNode_Objective;
+class UTaskFlowSystem;
 
 /**
  * [EN] Base class for task actions: an entry in the Actions array of UTaskFlowNode_Objective.
@@ -21,7 +22,7 @@ class UTaskFlowNode_Objective;
  * [CN] - 异步动作：Execute 里不调用 Finish()，等事情做完（定时器、回调等）再调用 Finish()。
  */
 UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced, meta = (DisplayName = "Task Action"))
-class TASKFLOWGRAPH_API UTaskFlowAction : public UObject, public ITaskFlowEventReceiver
+class TASKFLOWGRAPH_API UTaskFlowAction : public UObject
 {
 	GENERATED_BODY()
 
@@ -35,7 +36,7 @@ public:
 
 	/** [EN] Notify the owning node that this action is finished, continuing the next action. [CN] 通知所属节点本动作已完成，继续执行下一个动作 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
-	void Finish();
+	virtual void Finish();
 
 	/** [EN] Whether finished. [CN] 是否已完成 */
 	bool IsFinished() const { return bFinished; }
@@ -59,6 +60,10 @@ public:
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	AGameStateBase* GetGameStateOwner() const;
 
+	/** [EN] Get the TaskFlowSystem driving the current flow (via the owning Objective's Runner, falling back to the world subsystem). [CN] 获取正在驱动当前流程的 TaskFlowSystem（经由所属目标节点的 Runner，回退到世界子系统） */
+	UFUNCTION(BlueprintPure, Category = "TaskFlow")
+	UTaskFlowSystem* GetTaskFlowSystem() const;
+
 	/** [EN] Set the current progress of the owning Objective node. [CN] 设置所属目标节点的当前进度 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
 	void SetObjectiveProgress(int32 Value);
@@ -67,9 +72,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
 	void AddObjectiveProgress(int32 Amount);
 
-	//~ Begin ITaskFlowEventReceiver Interface
-	virtual void ReceiveTaskFlowEvent_Implementation(const FTaskFlowEvent& Event) override;
-	//~ End ITaskFlowEventReceiver Interface
+	/** [EN] Called by the owning Objective when a task flow event is received; override in subclasses. [CN] 所属目标节点收到任务流事件时调用，子类重写以处理 */
+	virtual void ReceiveTaskFlowEvent(const FTaskFlowEvent& Event);
 
 	//~ Begin Blackboard read/write (forwarded to the owning Objective node)
 	//~ 黑板读写（转发到所属目标节点）

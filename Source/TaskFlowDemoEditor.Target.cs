@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 public class TaskFlowDemoEditorTarget : TargetRules
 {
-	public TaskFlowDemoEditorTarget( TargetInfo Target) : base(Target)
+	public TaskFlowDemoEditorTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Editor;
 		DefaultBuildSettings = BuildSettingsVersion.V7;

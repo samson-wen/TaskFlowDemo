@@ -164,54 +164,13 @@ void UTaskFlowRunner::NotifyNodeFinished(UTaskFlowNode* Node)
 	}
 }
 
-void UTaskFlowRunner::DispatchEvent(const FTaskFlowEvent& Event)
-{
-	if (Asset.Get() == nullptr)
-	{
-		return;
-	}
-
-	TArray<UTaskFlowNode*> AllNodes;
-	Asset->GetAllNodes(AllNodes);
-
-	for (UTaskFlowNode* Node : AllNodes)
-	{
-		UTaskFlowNode_Objective* Objective = Cast<UTaskFlowNode_Objective>(Node);
-		if (Objective == nullptr || Objective->GetNodeState() != ETaskFlowNodeState::Executing)
-		{
-			continue;
-		}
-
-		// [EN] Only process Objectives that have event listening enabled, together with their unfinished actions.
-		// [CN] 只有目标节点开启了事件监听，才处理它本身及其未完成的动作
-		if (!Objective->bListenEvent)
-		{
-			continue;
-		}
-
-		ITaskFlowEventReceiver::Execute_ReceiveTaskFlowEvent(Objective, Event);
-
-		// [EN] Also dispatch to its actions that have not finished yet.
-		// [CN] 同时执行其尚未完成的动作
-		for (TObjectPtr<UTaskFlowAction>& ActionPtr : Objective->Actions)
-		{
-			UTaskFlowAction* Action = ActionPtr.Get();
-			if (Action != nullptr && !Action->IsFinished())
-			{
-				ITaskFlowEventReceiver::Execute_ReceiveTaskFlowEvent(Action, Event);
-			}
-		}
-	}
-}
-
 void UTaskFlowRunner::EmitEvent(const FTaskFlowEvent& Event)
 {
-	// [EN] Route the outbound event through the system so external listeners (global delegate + registered receivers) get it.
-	// [CN] 把出站事件交给 System 转发，使外部监听者（全局委托 + 已注册接收者）都能收到
+	// [CN] 通过系统以 OnTaskFlowEvent 委托广播，所有订阅者（蓝图 / C++）都能收到。
 	UTaskFlowSystem* System = GetTaskFlowSystem();
 	if (System != nullptr)
 	{
-		System->BroadcastEventToExternal(Event);
+		System->BroadcastTaskFlowEvent(Event);
 	}
 }
 

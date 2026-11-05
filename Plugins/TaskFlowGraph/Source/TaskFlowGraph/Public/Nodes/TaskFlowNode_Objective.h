@@ -17,7 +17,7 @@ class UTaskFlowRunner;
  * [CN] 节点被触发后，会按顺序依次执行 Actions 列表里的动作，全部完成后推进到下一个节点。
  */
 UCLASS(Blueprintable, meta = (DisplayName = "Objective", TaskFlowCategory = "Task"))
-class TASKFLOWGRAPH_API UTaskFlowNode_Objective : public UTaskFlowNode, public ITaskFlowEventReceiver
+class TASKFLOWGRAPH_API UTaskFlowNode_Objective : public UTaskFlowNode
 {
 	GENERATED_BODY()
 
@@ -40,14 +40,6 @@ public:
 	/** [EN] Node name, must be unique within the same asset (empty means unnamed, not validated). [CN] 节点名称，同一资产内不可重复（留空表示未命名，不校验） */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Objective")
 	FName NodeName;
-
-	/** [EN] Whether to listen for events; when true this Objective receives events broadcast by UTaskFlowSystem (the implementation decides based on Event.EventName). [CN] 是否监听事件；为 true 时，该目标会接收 UTaskFlowSystem 广播的事件（接收后由实现根据 Event.EventName 自行判断） */
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TaskFlow|Event")
-	bool bListenEvent = false;
-
-	//~ Begin ITaskFlowEventReceiver Interface
-	virtual void ReceiveTaskFlowEvent_Implementation(const FTaskFlowEvent& Event) override;
-	//~ End ITaskFlowEventReceiver Interface
 
 	//~ Begin UObject Interface
 	virtual void PreEditChange(FProperty* PropertyAboutToChange) override;
@@ -98,4 +90,8 @@ private:
 
 	/** [EN] NodeName before editing, used to roll back on duplication. [CN] 编辑前的 NodeName，重复时用于回退 */
 	FName OldNodeName;
+
+	/** [EN] Internal handler bound to UTaskFlowSystem::OnTaskFlowEvent; forwards events to unfinished Actions. [CN] 绑定到 OnTaskFlowEvent 的内部处理：把事件转发给尚未完成的动作 */
+	UFUNCTION()
+	void HandleTaskFlowEvent(const FTaskFlowEvent& Event);
 };

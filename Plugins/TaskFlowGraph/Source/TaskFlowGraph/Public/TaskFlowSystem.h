@@ -27,6 +27,9 @@ class TASKFLOWGRAPH_API UTaskFlowSystem : public UWorldSubsystem
 	GENERATED_BODY()
 
 public:
+
+	static UTaskFlowSystem* Get(const UObject* WorldContext);
+
 	/** [EN] Start executing a task flow and return the runner instance. [CN] 开始执行一个任务流程，返回执行器实例；InContext 传入 PlayerState 表示个人任务，传入 GameState 表示全局任务 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UTaskFlowRunner* RunTaskFlow(UTaskFlowAsset* InAsset, AActor* InContext = nullptr);
@@ -47,17 +50,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow", meta = (DisplayName = "Get Node State"))
 	ETaskFlowNodeState GetNodeState(UTaskFlowAsset* InAsset, FName NodeName) const;
 
-	/** [EN] Broadcast an event globally to active receivers of all running task flows. [CN] 全局广播事件：发送给所有正在执行的任务流的活跃接收者 */
+	/** [EN] Broadcast a task flow event: it is delivered to all listeners bound to the OnTaskFlowEvent delegate (Blueprint or C++). [CN] 广播任务流事件：派发给所有绑定到 OnTaskFlowEvent 委托的监听者（蓝图或 C++）。 [EN] The system no longer traverses its internal Runners / Objectives / Actions; any node or action that wants to handle events binds to OnTaskFlowEvent itself. [CN] 系统不再遍历内部的 Runner / Objective / Action；任何想要处理事件的节点或动作，自行绑定 OnTaskFlowEvent 即可。 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	void BroadcastEvent(FName EventName, UObject* Sender = nullptr, const FString& Payload = TEXT(""));
 
-	/** [EN] Broadcast an event to a specific runner only. [CN] 定向广播事件：只发送给指定 Runner */
+	/** [EN] Broadcast a structured task flow event to all active runners. [CN] 以结构体形式广播任务流事件，发送给所有正在执行的 Runner */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
-	void BroadcastEventToRunner(UTaskFlowRunner* Runner, FName EventName, UObject* Sender = nullptr, const FString& Payload = TEXT(""));
-
-	/** [EN] Broadcast to runners associated with the given context (PlayerState / GameState). [CN] 按上下文定向广播：只发送给指定 Context（PlayerState / GameState）关联的 Runner */
-	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
-	void BroadcastEventToContext(AActor* Context, FName EventName, UObject* Sender = nullptr, const FString& Payload = TEXT(""));
+	void BroadcastTaskFlowEvent(const FTaskFlowEvent& Event);
 
 	/**
 	 * [EN] Outbound event channel: fired for every event emitted by a running task flow (via UTaskFlowRunner::EmitEvent).
@@ -67,17 +66,6 @@ public:
 	 */
 	UPROPERTY(BlueprintAssignable, Category = "TaskFlow")
 	FOnTaskFlowEvent OnTaskFlowEvent;
-
-	/** [EN] Register an external object (must implement the TaskFlowEventReceiver interface) to receive outbound events. [CN] 注册一个外界对象（需实现 TaskFlowEventReceiver 接口）以接收出站事件 */
-	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
-	void RegisterExternalReceiver(TScriptInterface<ITaskFlowEventReceiver> Receiver);
-
-	/** [EN] Unregister an external receiver. [CN] 取消注册外界接收者 */
-	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
-	void UnregisterExternalReceiver(TScriptInterface<ITaskFlowEventReceiver> Receiver);
-
-	/** [EN] Broadcast an outbound event to the external world (global delegate + registered receivers). Called by UTaskFlowRunner::EmitEvent. [CN] 向外广播出站事件（全局委托 + 已注册的外部接收者）。由 UTaskFlowRunner::EmitEvent 调用 */
-	void BroadcastEventToExternal(const FTaskFlowEvent& Event);
 
 	/** [EN] Step interval (seconds) between nodes. 0 means run everything synchronously; >0 lets you watch nodes execute one by one. [CN] 节点之间步进间隔（秒），0 表示同步一口气执行完；大于 0 时可看到节点逐个执行 */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TaskFlow")
@@ -95,8 +83,4 @@ private:
 	/** [EN] Currently running task flows. [CN] 当前正在执行的任务流程 */
 	UPROPERTY()
 	TArray<TObjectPtr<UTaskFlowRunner>> ActiveRunners;
-
-	/** [EN] External objects registered to receive outbound events (held weakly so destroyed objects don't leak). [CN] 注册以接收出站事件的外界对象（弱引用持有，销毁后自动失效不泄漏） */
-	UPROPERTY()
-	TArray<TWeakObjectPtr<UObject>> ExternalReceivers;
 };

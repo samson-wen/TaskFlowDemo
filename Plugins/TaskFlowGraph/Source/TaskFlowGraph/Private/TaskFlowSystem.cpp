@@ -5,6 +5,16 @@
 #include "TaskFlowEvent.h"
 #include "TaskFlowRunner.h"
 
+UTaskFlowSystem* UTaskFlowSystem::Get(const UObject* WorldContext)
+{
+	UWorld* World = IsValid(WorldContext) ? WorldContext->GetWorld() : nullptr;
+	if (World != nullptr)
+	{
+		return World->GetSubsystem<UTaskFlowSystem>();
+	}
+	return nullptr;
+}
+
 void UTaskFlowSystem::Deinitialize()
 {
 	// [EN] Before the world is destroyed, stop all running task flows.
@@ -95,50 +105,19 @@ void UTaskFlowSystem::BroadcastEvent(FName EventName, UObject* Sender, const FSt
 	Event.Sender = Sender;
 	Event.Payload = Payload;
 
-	for (UTaskFlowRunner* Runner : ActiveRunners)
-	{
-		if (Runner != nullptr)
-		{
-			Runner->DispatchEvent(Event);
-		}
-	}
+	// [CN] 通过 OnTaskFlowEvent 委托广播，所有订阅者（蓝图 / C++）都能收到；系统不再遍历内部节点。
+	OnTaskFlowEvent.Broadcast(Event);
 }
 
-void UTaskFlowSystem::BroadcastEventToRunner(UTaskFlowRunner* Runner, FName EventName, UObject* Sender, const FString& Payload)
+
+
+
+void UTaskFlowSystem::BroadcastTaskFlowEvent(const FTaskFlowEvent& Event)
 {
-	if (Runner == nullptr)
-	{
-		return;
-	}
-
-	FTaskFlowEvent Event;
-	Event.EventName = EventName;
-	Event.Sender = Sender;
-	Event.Payload = Payload;
-
-	Runner->DispatchEvent(Event);
+	// [CN] 以结构体形式广播：与 BroadcastEvent 一致，通过 OnTaskFlowEvent 委托派发。
+	OnTaskFlowEvent.Broadcast(Event);
 }
 
-void UTaskFlowSystem::BroadcastEventToContext(AActor* Context, FName EventName, UObject* Sender, const FString& Payload)
-{
-	if (Context == nullptr)
-	{
-		return;
-	}
-
-	FTaskFlowEvent Event;
-	Event.EventName = EventName;
-	Event.Sender = Sender;
-	Event.Payload = Payload;
-
-	for (UTaskFlowRunner* Runner : ActiveRunners)
-	{
-		if (Runner != nullptr && Runner->GetContext() == Context)
-		{
-			Runner->DispatchEvent(Event);
-		}
-	}
-}
 
 void UTaskFlowSystem::HandleTaskFlowFinished(UTaskFlowRunner* Runner)
 {
@@ -148,49 +127,4 @@ void UTaskFlowSystem::HandleTaskFlowFinished(UTaskFlowRunner* Runner)
 	}
 }
 
-void UTaskFlowSystem::RegisterExternalReceiver(TScriptInterface<ITaskFlowEventReceiver> Receiver)
-{
-	UObject* Obj = Receiver.GetObject();
-	if (Obj == nullptr)
-	{
-		return;
-	}
 
-	TWeakObjectPtr<UObject> Weak(Obj);
-	if (!ExternalReceivers.Contains(Weak))
-	{
-		ExternalReceivers.Add(Weak);
-	}
-}
-
-void UTaskFlowSystem::UnregisterExternalReceiver(TScriptInterface<ITaskFlowEventReceiver> Receiver)
-{
-	if (Receiver.GetObject() != nullptr)
-	{
-		ExternalReceivers.Remove(TWeakObjectPtr<UObject>(Receiver.GetObject()));
-	}
-}
-
-void UTaskFlowSystem::BroadcastEventToExternal(const FTaskFlowEvent& Event)
-{
-	// [EN] 1) Notify any external code bound to the global delegate (the main "outside world" entry point).
-	// [CN] 1) 通知绑定到全局委托的外部代码（最主要的“外界”入口）
-	OnTaskFlowEvent.Broadcast(Event);
-
-	// [EN] 2) Deliver to externally registered receivers (objects implementing the interface).
-	// [CN] 2) 投递给已注册的外界接收者（实现了接口的对象）
-	for (const TWeakObjectPtr<UObject>& WeakObj : ExternalReceivers)
-	{
-		if (UObject* Obj = WeakObj.Get())
-		{
-			if (Obj->Implements<UTaskFlowEventReceiver>())
-			{
-				ITaskFlowEventReceiver::Execute_ReceiveTaskFlowEvent(Obj, Event);
-			}
-		}
-	}
-
-	// [EN] Compact dead weak references (objects destroyed without unregistering).
-	// [CN] 清理已失效的弱引用（对象被销毁但未取消注册）
-	ExternalReceivers.RemoveAll([](const TWeakObjectPtr<UObject>& Weak) { return !Weak.IsValid(); });
-}

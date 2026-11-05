@@ -62,9 +62,6 @@ public:
 	/** [EN] Called when a node finishes, to advance the flow. [CN] 节点完成时回调，用于推进流程 */
 	void NotifyNodeFinished(UTaskFlowNode* Node);
 
-	/** [EN] Dispatch an event to active event receivers (called by UTaskFlowSystem). [CN] 把事件分发给当前活跃的事件接收者（由 UTaskFlowSystem 调用） */
-	void DispatchEvent(const FTaskFlowEvent& Event);
-
 	/** [EN] Emit a task flow event outward to the external world (external code / registered receivers). [CN] 从流程内部向外界发出事件（外界代码 / 已注册的外部接收者） */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Event", meta = (DisplayName = "Emit Task Flow Event"))
 	void EmitEvent(const FTaskFlowEvent& Event);

@@ -1,6 +1,8 @@
 #include "Nodes/TaskFlowAction.h"
 
 #include "Nodes/TaskFlowNode_Objective.h"
+#include "TaskFlowRunner.h"
+#include "TaskFlowSystem.h"
 
 FText UTaskFlowAction::GetActionName() const
 {
@@ -148,8 +150,26 @@ AGameStateBase* UTaskFlowAction::GetGameStateOwner() const
 	return Owner != nullptr ? Owner->GetGameStateOwner() : nullptr;
 }
 
-void UTaskFlowAction::ReceiveTaskFlowEvent_Implementation(const FTaskFlowEvent& Event)
+UTaskFlowSystem* UTaskFlowAction::GetTaskFlowSystem() const
 {
-	// [EN] No handling by default; override in subclasses / Blueprints.
-	// [CN] 默认不处理，子类 / 蓝图重写
+	// [CN] 优先经由所属目标节点当前执行的 Runner 取得系统（最可靠）。
+	if (UTaskFlowNode_Objective* Owner = OwningObjective.Get())
+	{
+		if (UTaskFlowRunner* Runner = Owner->GetRunner())
+		{
+			if (UTaskFlowSystem* System = Runner->GetTaskFlowSystem())
+			{
+				return System;
+			}
+		}
+	}
+
+	// [CN] 回退：通过动作对象的 World 上下文直接取世界子系统。
+	return UTaskFlowSystem::Get(this);
+}
+
+void UTaskFlowAction::ReceiveTaskFlowEvent(const FTaskFlowEvent& Event)
+{
+	// [EN] No handling by default; override in subclasses.
+	// [CN] 默认不处理，子类重写
 }
