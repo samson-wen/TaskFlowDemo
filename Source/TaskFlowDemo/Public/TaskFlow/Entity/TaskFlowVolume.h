@@ -22,6 +22,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Volume Info")
 	bool bEnableCharacterOverlapEvent = false;
 
+public:
+	UFUNCTION()
+	void ShowArrow();
+	UFUNCTION()
+	void HideArrow();
+
 protected:
 	virtual void BeginPlay() override;
 

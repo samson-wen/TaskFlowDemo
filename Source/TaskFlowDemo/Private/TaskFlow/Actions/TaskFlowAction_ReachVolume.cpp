@@ -1,8 +1,9 @@
 #include "TaskFlow/Actions/TaskFlowAction_ReachVolume.h"
 #include "Nodes/TaskFlowNode_Objective.h"
 #include "TaskFlowSystem.h"
-#include "TaskFlow/GameTaskFlowTypes.h"
 #include "TaskFlowTypes.h"
+#include "TaskFlow/GameTaskFlowTypes.h"
+#include "TaskFlow/Entity/TaskFlowVolume.h"
 
 #define LOCTEXT_NAMESPACE "TaskFlowAction_ReachVolume"
 
@@ -21,6 +22,12 @@ void UTaskFlowAction_ReachVolume::Execute_Implementation(UTaskFlowNode_Objective
 {
 	// Asynchronous action: it does not finish inside Execute; instead it subscribes to the system's OnTaskFlowEvent
 	//      and waits for the volume-enter event (it no longer relies on Objective node forwarding).
+	if (VolumeID == 0 && (VolumeTag.IsNone() || VolumeTag.IsEqual("")))
+	{
+		//Volume is //Volume is not configured, finish immediately
+		return;
+	}
+
 	UTaskFlowSystem* System = GetTaskFlowSystem();
 	if (System != nullptr)
 	{
@@ -33,6 +40,21 @@ void UTaskFlowAction_ReachVolume::Execute_Implementation(UTaskFlowNode_Objective
 			GetNameSafe(GetOwnerObjective()), TEXT("EventBound"), GetName(),
 			*GetClass()->GetName(), TEXT("OnTaskFlowEvent"));
 	}
+
+	AActor* VolumeActor = nullptr;
+	if (VolumeRef.Actor.IsNull() == false)
+	{
+		VolumeActor = VolumeRef.GetActor(GetWorld());
+	}
+	if (VolumeActor != nullptr)
+	{
+		ATaskFlowVolume* TaskFlowVolume = Cast<ATaskFlowVolume>(VolumeActor);
+		if (TaskFlowVolume != nullptr)
+		{
+			TaskFlowVolume->ShowArrow();
+		}
+	}
+
 }
 
 void UTaskFlowAction_ReachVolume::OnTaskFlowEventReceived(const FTaskFlowEvent& Event)
@@ -72,6 +94,19 @@ void UTaskFlowAction_ReachVolume::OnTaskFlowEventReceived(const FTaskFlowEvent& 
 
 void UTaskFlowAction_ReachVolume::Finish()
 {
+	AActor* VolumeActor = nullptr;
+	if (VolumeRef.Actor.IsNull() == false)
+	{
+		VolumeActor = VolumeRef.GetActor(GetWorld());
+	}
+	if (VolumeActor != nullptr)
+	{
+		ATaskFlowVolume* TaskFlowVolume = Cast<ATaskFlowVolume>(VolumeActor);
+		if (TaskFlowVolume != nullptr)
+		{
+			TaskFlowVolume->HideArrow();
+		}
+	}
 	Super::Finish();
 
 	UnbindFromTaskFlowEvent();

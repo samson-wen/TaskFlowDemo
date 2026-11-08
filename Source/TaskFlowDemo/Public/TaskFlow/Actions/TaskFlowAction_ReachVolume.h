@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Nodes/TaskFlowAction.h"
 #include "TaskFlowSystem.h"
+#include "TaskFlowActorReference.h"
 #include "TaskFlowAction_ReachVolume.generated.h"
 
 /** Action that completes when the player reaches (enters) a TaskFlowVolume. */
@@ -34,6 +35,11 @@ public:
 	/** Only finish when the entered volume's tag matches this value; empty means any volume. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReachVolume")
 	FName VolumeTag = NAME_None;
+
+	/** Only finish when the entered volume's tag matches this value; empty means any volume. */
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ReachVolume")
+	FTaskFlowActorReference VolumeRef;
+
 
 private:
 	/** Unbind this action from the system's global event delegate, using the cached System. */
