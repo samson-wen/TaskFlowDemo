@@ -17,8 +17,7 @@ UTaskFlowSystem* UTaskFlowSystem::Get(const UObject* WorldContext)
 
 void UTaskFlowSystem::Deinitialize()
 {
-	// [EN] Before the world is destroyed, stop all running task flows.
-	// [CN] 世界销毁前，停止所有正在执行的任务流程
+	// Before the world is destroyed, stop all running task flows.
 	TArray<TObjectPtr<UTaskFlowRunner>> Runners = MoveTemp(ActiveRunners);
 	for (UTaskFlowRunner* Runner : Runners)
 	{
@@ -38,8 +37,7 @@ UTaskFlowRunner* UTaskFlowSystem::RunTaskFlow(UTaskFlowAsset* InAsset, AActor* I
 		return nullptr;
 	}
 
-	// [EN] Use the subsystem as the Outer so the Runner's GetWorld() resolves to the owning World.
-	// [CN] 以子系统为 Outer，Runner 的 GetWorld() 即可解析到所在 World
+	// Use the subsystem as the Outer so the Runner's GetWorld() resolves to the owning World.
 	UTaskFlowRunner* Runner = NewObject<UTaskFlowRunner>(this);
 	Runner->AddToRoot();
 	Runner->StepDelaySeconds = StepDelaySeconds;
@@ -50,6 +48,25 @@ UTaskFlowRunner* UTaskFlowSystem::RunTaskFlow(UTaskFlowAsset* InAsset, AActor* I
 	Runner->Start(InAsset, InContext);
 
 	return Runner;
+}
+
+bool UTaskFlowSystem::IsTaskFlowAssetRunning(const UTaskFlowAsset* InAsset) const
+{
+	if (InAsset == nullptr)
+	{
+		return false;
+	}
+
+	for (const TObjectPtr<UTaskFlowRunner>& RunnerPtr : ActiveRunners)
+	{
+		const UTaskFlowRunner* Runner = RunnerPtr.Get();
+		if (Runner != nullptr && Runner->IsRunning() && Runner->Asset.Get() == InAsset)
+		{
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void UTaskFlowSystem::StopTaskFlow(UTaskFlowRunner* InRunner)
@@ -105,7 +122,7 @@ void UTaskFlowSystem::BroadcastEvent(FName EventName, UObject* Sender, const FSt
 	Event.Sender = Sender;
 	Event.Payload = Payload;
 
-	// [CN] 通过 OnTaskFlowEvent 委托广播，所有订阅者（蓝图 / C++）都能收到；系统不再遍历内部节点。
+	// Broadcast through OnTaskFlowEvent so all subscribers (Blueprint / C++) receive it; the system no longer traverses internal nodes.
 	OnTaskFlowEvent.Broadcast(Event);
 }
 
@@ -114,7 +131,7 @@ void UTaskFlowSystem::BroadcastEvent(FName EventName, UObject* Sender, const FSt
 
 void UTaskFlowSystem::BroadcastTaskFlowEvent(const FTaskFlowEvent& Event)
 {
-	// [CN] 以结构体形式广播：与 BroadcastEvent 一致，通过 OnTaskFlowEvent 委托派发。
+	// Broadcast a structured event: like BroadcastEvent, it is dispatched through OnTaskFlowEvent.
 	OnTaskFlowEvent.Broadcast(Event);
 }
 

@@ -17,7 +17,7 @@
 
 namespace TaskFlowSchemaUtils
 {
-	/** [EN] Recursively check whether To can be reached starting from From. [CN] 递归判断从 From 出发是否可以到达 To */
+	/** Recursively check whether To can be reached starting from From. */
 	bool CanReach(const UEdGraphNode* From, const UEdGraphNode* To, TSet<const UEdGraphNode*>& Visited)
 	{
 		if (From == nullptr || To == nullptr)
@@ -61,7 +61,7 @@ namespace TaskFlowSchemaUtils
 		return false;
 	}
 
-	/** [EN] Create a node of the given type at the specified location. [CN] 在指定位置创建一个节点 */
+	/** Create a node of the given type at the specified location. */
 	template <typename NodeType>
 	NodeType* SpawnNode(UEdGraph& Graph, const FVector2f& Location)
 	{
@@ -74,8 +74,7 @@ void UTaskFlowGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 {
 	const UTaskFlowGraph* TaskFlowGraph = Cast<UTaskFlowGraph>(ContextMenuBuilder.CurrentGraph);
 
-	// [EN] Unique nodes already present in the graph (e.g. Start) are not offered for creation again.
-	// [CN] 图中已存在的唯一节点（例如 Start），不再提供创建入口
+	// Unique nodes already present in the graph (e.g. Start) are not offered for creation again.
 	TSet<UClass*> ExistingUniqueClasses;
 	if (TaskFlowGraph != nullptr)
 	{
@@ -90,8 +89,7 @@ void UTaskFlowGraphSchema::GetGraphContextActions(FGraphContextMenuBuilder& Cont
 		}
 	}
 
-	// [EN] Collect all instantiable UTaskFlowNode subclasses and generate menu entries automatically.
-	// [CN] 收集所有可实例化的 UTaskFlowNode 子类，自动生成菜单项
+	// Collect all instantiable UTaskFlowNode subclasses and generate menu entries automatically.
 	TArray<UClass*> NodeClasses;
 	GetDerivedClasses(UTaskFlowNode::StaticClass(), NodeClasses, true);
 
@@ -127,17 +125,17 @@ const FPinConnectionResponse UTaskFlowGraphSchema::CanCreateConnection(const UEd
 {
 	if (A == nullptr || B == nullptr)
 	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_Invalid", "引脚无效"));
+		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_Invalid", "Invalid pin"));
 	}
 
 	if (A->GetOwningNode() == B->GetOwningNode())
 	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_SameNode", "不能连接到自己"));
+		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_SameNode", "Cannot connect a node to itself"));
 	}
 
 	if (A->Direction == B->Direction)
 	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_SameDirection", "只能从输出引脚连接到输入引脚"));
+		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_SameDirection", "Connections must go from an output pin to an input pin"));
 	}
 
 	const UEdGraphPin* OutputPin = (A->Direction == EGPD_Output) ? A : B;
@@ -146,12 +144,11 @@ const FPinConnectionResponse UTaskFlowGraphSchema::CanCreateConnection(const UEd
 	UEdGraphNode* OutputNode = OutputPin->GetOwningNode();
 	UEdGraphNode* InputNode = InputPin->GetOwningNode();
 
-	// [EN] Disallow creating cycles.
-	// [CN] 不允许成环
+	// Disallow creating cycles.
 	TSet<const UEdGraphNode*> Visited;
 	if (TaskFlowSchemaUtils::CanReach(InputNode, OutputNode, Visited))
 	{
-		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_Cycle", "不允许连成一个环"));
+		return FPinConnectionResponse(CONNECT_RESPONSE_DISALLOW, LOCTEXT("PinError_Cycle", "Connections cannot form a cycle"));
 	}
 
 	return FPinConnectionResponse(CONNECT_RESPONSE_MAKE, FText::GetEmpty());
@@ -159,17 +156,16 @@ const FPinConnectionResponse UTaskFlowGraphSchema::CanCreateConnection(const UEd
 
 void UTaskFlowGraphSchema::CreateDefaultNodesForGraph(UEdGraph& Graph) const
 {
-	// [EN] Spawn the default Start node at (0,0) and the End node at (400,0).
-	// [CN] 在 (0,0) 生成 Start，在 (400,0) 生成 End
+	// Spawn the default Start node at (0,0) and the End node at (400,0).
 	TaskFlowSchemaUtils::SpawnNode<UTaskFlowNode_Start>(Graph, FVector2f(0.f, 0.f));
 	TaskFlowSchemaUtils::SpawnNode<UTaskFlowNode_End>(Graph, FVector2f(400.f, 0.f));
 }
 
 void UTaskFlowGraphSchema::GetGraphDisplayInformation(const UEdGraph& Graph, FGraphDisplayInfo& DisplayInfo) const
 {
-	DisplayInfo.PlainName = LOCTEXT("TaskFlowGraph_PlainName", "任务流程");
+	DisplayInfo.PlainName = LOCTEXT("TaskFlowGraph_PlainName", "Task Flow");
 	DisplayInfo.DisplayName = DisplayInfo.PlainName;
-	DisplayInfo.Tooltip = LOCTEXT("TaskFlowGraph_Tooltip", "任务流程图：从 Start 节点开始，依次执行连线上后面的节点");
+	DisplayInfo.Tooltip = LOCTEXT("TaskFlowGraph_Tooltip", "Task Flow Graph: execution starts at the Start node, then follows the connected nodes in order");
 }
 
 FLinearColor UTaskFlowGraphSchema::GetPinTypeColor(const FEdGraphPinType& PinType) const
@@ -185,8 +181,7 @@ bool UTaskFlowGraphSchema::ShouldHidePinDefaultValue(UEdGraphPin* Pin) const
 FConnectionDrawingPolicy* UTaskFlowGraphSchema::CreateConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj) const
 {
 #if WITH_EDITOR
-	// [EN] Use the custom policy so links can show an animated flow at runtime.
-	// [CN] 使用自定义策略，让连线在运行时能显示流动动效
+	// Use the custom policy so links can show an animated flow at runtime.
 	return new FTaskFlowConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, InZoomFactor, InClippingRect, InDrawElements, InGraphObj);
 #else
 	return nullptr;

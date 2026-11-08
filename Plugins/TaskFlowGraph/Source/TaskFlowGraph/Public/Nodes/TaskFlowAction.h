@@ -12,14 +12,10 @@ class UTaskFlowNode_Objective;
 class UTaskFlowSystem;
 
 /**
- * [EN] Base class for task actions: an entry in the Actions array of UTaskFlowNode_Objective.
- * [CN] 任务动作基类：UTaskFlowNode_Objective 的 Actions 数组里的一项。
- * [EN] Developers inherit from this class (C++ or Blueprint) and implement Execute to define a custom action.
- * [CN] 开发者继承本类（C++ 或蓝图）并实现 Execute 即可自定义动作。
- * [EN] - Synchronous action: call Finish() directly inside Execute.
- * [CN] - 同步动作：Execute 里直接调用 Finish()；
- * [EN] - Asynchronous action: do not call Finish() inside Execute; call Finish() when the work is done (timer, callback, etc.).
- * [CN] - 异步动作：Execute 里不调用 Finish()，等事情做完（定时器、回调等）再调用 Finish()。
+ * Base class for task actions: an entry in the Actions array of UTaskFlowNode_Objective.
+ * Developers inherit from this class (C++ or Blueprint) and implement Execute to define a custom action.
+ * - Synchronous action: call Finish() directly inside Execute.
+ * - Asynchronous action: do not call Finish() inside Execute; call Finish() when the work is done (timer, callback, etc.).
  */
 UCLASS(Abstract, Blueprintable, EditInlineNew, DefaultToInstanced, meta = (DisplayName = "Task Action"))
 class TASKFLOWGRAPH_API UTaskFlowAction : public UObject
@@ -27,64 +23,63 @@ class TASKFLOWGRAPH_API UTaskFlowAction : public UObject
 	GENERATED_BODY()
 
 public:
-	/** [EN] Action display name; defaults to the class name (without the TaskFlowAction_ prefix). [CN] 动作显示名，默认取类名（去掉 TaskFlowAction_ 前缀） */
+	/** Action display name; defaults to the class name (without the TaskFlowAction_ prefix). */
 	virtual FText GetActionName() const;
 
-	/** [EN] Execute the action; OwnerNode is the owning Objective node. [CN] 执行动作，OwnerNode 为所属目标节点 */
+	/** Execute the action; OwnerNode is the owning Objective node. */
 	UFUNCTION(BlueprintNativeEvent, Category = "TaskFlow")
 	void Execute(UTaskFlowNode_Objective* OwnerNode);
 
-	/** [EN] Notify the owning node that this action is finished, continuing the next action. [CN] 通知所属节点本动作已完成，继续执行下一个动作 */
+	/** Notify the owning node that this action is finished, continuing the next action. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	virtual void Finish();
 
 	/**
-	 * [EN] Called when the whole flow ends (End / Stop). The base marks the action finished so late callbacks
+	 * Called when the whole flow ends (End / Stop). The base marks the action finished so late callbacks
 	 * cannot call Finish() and advance the flow; async subclasses override to release external bindings.
-	 * [CN] 整个流程结束（到达 End / 被停止）时调用；基类把动作标记为已完成，使迟到的回调无法再调用 Finish() 推进流程；
-	 * 异步子类需重写以释放外部绑定（委托、定时器等）。
+	 * Async subclasses should override this to release external bindings (delegates, timers, etc.).
 	 */
 	virtual void OnFlowEnded();
 
-	/** [EN] Whether finished. [CN] 是否已完成 */
+	/** Whether finished. */
 	bool IsFinished() const { return bFinished; }
 
-	/** [EN] Internal: called by the Objective node to trigger Execute. [CN] 内部：由目标节点调用，触发 Execute */
+	/** Internal: called by the Objective node to trigger Execute. */
 	void Start(UTaskFlowNode_Objective* InOwnerNode);
 
-	/** [EN] Get the owning Objective node. [CN] 获取所属目标节点 */
+	/** Get the owning Objective node. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UTaskFlowNode_Objective* GetOwnerObjective() const { return OwningObjective.Get(); }
 
-	/** [EN] Get the context (PlayerState or GameState) executing this action; may be null. [CN] 获取执行该动作的上下文（PlayerState 或 GameState），可能为空 */
+	/** Get the context (PlayerState or GameState) executing this action; may be null. */
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	AActor* GetContext() const;
 
-	/** [EN] Get the PlayerState for a personal task (valid for personal tasks). [CN] 获取个人任务所属的 PlayerState（个人任务时有效） */
+	/** Get the PlayerState for a personal task (valid for personal tasks). */
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	APlayerState* GetPlayerStateOwner() const;
 
-	/** [EN] Get the GameState for a global task (valid for global tasks). [CN] 获取全局任务所属的 GameState（全局任务时有效） */
+	/** Get the GameState for a global task (valid for global tasks). */
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	AGameStateBase* GetGameStateOwner() const;
 
-	/** [EN] Get the TaskFlowSystem driving the current flow (via the owning Objective's Runner, falling back to the world subsystem). [CN] 获取正在驱动当前流程的 TaskFlowSystem（经由所属目标节点的 Runner，回退到世界子系统） */
+	/** Get the TaskFlowSystem driving the current flow (via the owning Objective's Runner, falling back to the world subsystem). */
 	UFUNCTION(BlueprintPure, Category = "TaskFlow")
 	UTaskFlowSystem* GetTaskFlowSystem() const;
 
-	/** [EN] Set the current progress of the owning Objective node. [CN] 设置所属目标节点的当前进度 */
+	/** Set the current progress of the owning Objective node. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
 	void SetObjectiveProgress(int32 Value);
 
-	/** [EN] Add to the current progress of the owning Objective node. [CN] 增加所属目标节点的当前进度 */
+	/** Add to the current progress of the owning Objective node. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Objective")
 	void AddObjectiveProgress(int32 Amount);
 
-	/** [EN] Called by the owning Objective when a task flow event is received; override in subclasses. [CN] 所属目标节点收到任务流事件时调用，子类重写以处理 */
+	/** Called by the owning Objective when a task flow event is received; override in subclasses. */
 	virtual void ReceiveTaskFlowEvent(const FTaskFlowEvent& Event);
 
 	//~ Begin Blackboard read/write (forwarded to the owning Objective node)
-	//~ 黑板读写（转发到所属目标节点）
+	//~ Blackboard read/write (forwarded to the owning Objective node)
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Blackboard")
 	bool SetBlackboardInt(FName Key, int32 Value);
 	UFUNCTION(BlueprintPure, Category = "TaskFlow|Blackboard")

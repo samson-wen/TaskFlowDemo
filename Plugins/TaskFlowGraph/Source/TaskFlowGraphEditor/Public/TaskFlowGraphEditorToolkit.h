@@ -12,7 +12,7 @@ class SGraphEditor;
 class UTaskFlowAsset;
 class UTaskFlowNode;
 
-/** [EN] Task Flow asset editor: the flow Graph on the left, the selected node's properties on the right. [CN] 任务流程资产编辑器：左边是流程 Graph，右边是选中节点的属性 */
+/** Task Flow asset editor: the flow Graph on the left, the selected node's properties on the right. */
 class FTaskFlowGraphEditor : public FAssetEditorToolkit
 {
 public:
@@ -38,53 +38,56 @@ private:
 	FGraphAppearanceInfo GetGraphAppearance() const;
 	void OnSelectedNodesChanged(const FGraphPanelSelectionSet& SelectedNodes);
 
+	/** Double-clicking a Sub Flow node opens its bound TaskFlowAsset in a task flow editor. */
+	void OnNodeDoubleClicked(UEdGraphNode* Node);
+
 	void CreateInternalWidgets();
 
-	/** [EN] Delete the currently selected nodes (Delete key). [CN] 删除当前选中的节点（Delete 键） */
+	/** Delete the currently selected nodes (Delete key). */
 	void DeleteSelectedNodes();
 	bool CanDeleteSelectedNodes() const;
 
-	/** [EN] Copy the currently selected nodes (Ctrl+C). [CN] 复制当前选中的节点（Ctrl+C） */
+	/** Copy the currently selected nodes (Ctrl+C). */
 	void CopySelectedNodes();
 	bool CanCopyNodes() const;
 
-	/** [EN] Cut the currently selected nodes (Ctrl+X). [CN] 剪切当前选中的节点（Ctrl+X） */
+	/** Cut the currently selected nodes (Ctrl+X). */
 	void CutSelectedNodes();
 	bool CanCutNodes() const;
 
-	/** [EN] Paste nodes from the clipboard (Ctrl+V). [CN] 粘贴剪贴板中的节点（Ctrl+V） */
+	/** Paste nodes from the clipboard (Ctrl+V). */
 	void PasteNodes();
 	bool CanPasteNodes() const;
 
-	/** [EN] Copy and paste (Ctrl+D). [CN] 复制并粘贴（Ctrl+D） */
+	/** Copy and paste (Ctrl+D). */
 	void DuplicateNodes();
 	bool CanDuplicateNodes() const;
 
-	/** [EN] Export the graph to a Json file. [CN] 导出图到 Json 文件 */
+	/** Export the graph to a Json file. */
 	void ExportToJson();
 
-	/** [EN] Import the graph from a Json file. [CN] 从 Json 文件导入图 */
+	/** Import the graph from a Json file. */
 	void ImportFromJson();
 
-	/** [EN] Extend the toolbar (add export/import buttons). [CN] 扩展工具栏（添加导出/导入按钮） */
+	/** Extend the toolbar (add export/import buttons). */
 	void ExtendToolbar();
 
-	/** [EN] Refresh the node's display color when its state changes. [CN] 节点状态变化时刷新该节点的显示颜色 */
+	/** Refresh the node's display color when its state changes. */
 	void OnNodeStateChanged(UTaskFlowNode* Node);
 
-	/** [EN] Reset all nodes to gray when PIE ends. [CN] PIE 结束时把所有节点重置为灰色 */
+	/** Reset all nodes to gray when PIE ends. */
 	void OnPIEEnded(bool bIsSimulating);
 
-	/** [EN] Begin PIE: start animating connection flows. [CN] PIE 开始：启动连接线流动动效 */
+	/** Begin PIE: start animating connection flows. */
 	void OnPIEBegan(bool bIsSimulating);
 
-	/** [EN] Start the per-frame animation ticker (called on PIE begin or when a node starts executing). [CN] 启动按帧刷新的动画 ticker（PIE 开始或节点开始执行时调用） */
+	/** Start the per-frame animation ticker (called on PIE begin or when a node starts executing). */
 	void StartAnimation();
 
-	/** [EN] Stop the animation ticker. [CN] 停止动画 ticker */
+	/** Stop the animation ticker. */
 	void StopAnimation();
 
-	/** [EN] Per-frame ticker that repaints the graph panel so the flow dots keep animating. [CN] 每帧 ticker，重绘图面板以保持连线动效持续播放 */
+	/** Per-frame ticker that repaints the graph panel so the flow dots keep animating. */
 	bool TickAnimate(float DeltaTime);
 
 private:
@@ -97,19 +100,19 @@ private:
 
 	TSharedPtr<FWorkspaceItem> WorkspaceMenuCategory;
 
-	/** [EN] Subscription handle for the node-state-changed broadcast. [CN] 节点状态变化广播的订阅句柄 */
+	/** Subscription handle for the node-state-changed broadcast. */
 	FDelegateHandle NodeStateChangedHandle;
 
-	/** [EN] Subscription handle for the PIE-ended event. [CN] PIE 结束事件的订阅句柄 */
+	/** Subscription handle for the PIE-ended event. */
 	FDelegateHandle PieEndHandle;
 
-	/** [EN] Subscription handle for the PIE-began event. [CN] PIE 开始事件的订阅句柄 */
+	/** Subscription handle for the PIE-began event. */
 	FDelegateHandle PieBeginHandle;
 
-	/** [EN] Whether the connection-flow animation ticker is currently active. [CN] 连接线动效 ticker 是否正在运行 */
+	/** Whether the connection-flow animation ticker is currently active. */
 	bool bIsAnimating = false;
 
-	/** [EN] Handle of the animation ticker (FTSTicker uses a weak-pointer based handle). [CN] 动画 ticker 的句柄（FTSTicker 使用基于弱指针的句柄类型） */
+	/** Handle of the animation ticker (FTSTicker uses a weak-pointer based handle). */
 	FTSTicker::FDelegateHandle AnimTickerHandle;
 
 	static const FName GraphTabId;

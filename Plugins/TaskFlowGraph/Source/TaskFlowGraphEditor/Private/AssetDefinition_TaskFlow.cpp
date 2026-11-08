@@ -11,7 +11,7 @@
 
 FText UAssetDefinition_TaskFlow::GetAssetDisplayName() const
 {
-	return LOCTEXT("AssetDefinition_TaskFlow_DisplayName", "任务流程");
+	return LOCTEXT("AssetDefinition_TaskFlow_DisplayName", "Task Flow");
 }
 
 FLinearColor UAssetDefinition_TaskFlow::GetAssetColor() const
@@ -41,8 +41,7 @@ EAssetCommandResult UAssetDefinition_TaskFlow::OpenAssets(const FAssetOpenArgs& 
 
 	for (UTaskFlowAsset* Asset : OpenArgs.LoadObjects<UTaskFlowAsset>())
 	{
-		// [EN] If the asset is already open, focus the existing editor instead of opening a duplicate.
-		// [CN] 若该资产已打开，则聚焦已有编辑器，不重复打开
+		// If the asset is already open, focus the existing editor instead of opening a duplicate.
 		if (AssetEditorSubsystem->FindEditorForAsset(Asset, true) != nullptr)
 		{
 			continue;

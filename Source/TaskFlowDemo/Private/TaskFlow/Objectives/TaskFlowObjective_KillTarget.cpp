@@ -9,8 +9,9 @@ UTaskFlowObjective_KillTarget::UTaskFlowObjective_KillTarget()
 {
 	ObjectiveDescription = LOCTEXT("DefaultDescription", "Kill Target");
 
-	// [CN] 该目标靠击杀进度完成，必须至少要求 1 次；MaxProgress 为 0 时基类会在无 Actions 的情况下立即判定完成。
+	// This Objective completes on kill progress, so it requires at least 1; with MaxProgress = 0 the base class would complete immediately when there are no Actions.
 	MaxProgress = 1;
+	bListenToTaskFlowEvents = true;
 }
 
 FText UTaskFlowObjective_KillTarget::GetTooltipText() const
@@ -20,7 +21,7 @@ FText UTaskFlowObjective_KillTarget::GetTooltipText() const
 
 void UTaskFlowObjective_KillTarget::Execute_Implementation(UTaskFlowRunner* Runner)
 {
-	// [CN] 防止用户在 Details 面板把 MaxProgress 改成 0，导致目标无需击杀就立即完成。
+	// Prevent the user from setting MaxProgress to 0 in the Details panel, which would complete the Objective without any kill.
 	if (MaxProgress < 1)
 	{
 		MaxProgress = 1;
@@ -29,29 +30,48 @@ void UTaskFlowObjective_KillTarget::Execute_Implementation(UTaskFlowRunner* Runn
 	Super::Execute_Implementation(Runner);
 }
 
+bool UTaskFlowObjective_KillTarget::ShouldListenToTaskFlowEvents() const
+{
+	// Kill progress depends entirely on EVENT_ENEMY_DEATH, so it is unaffected by the base class default / an accidental toggle off.
+	return true;
+}
+
 void UTaskFlowObjective_KillTarget::OnTaskFlowEventReceived(const FTaskFlowEvent& Event)
 {
+	const FString EnterDetail = FString::Printf(TEXT("EventName=%s"), *Event.EventName.ToString());
+	LogTaskFlowLifecycle(
+		TEXT("<None>"), TEXT("HookEntered"), GetName(),
+		*GetClass()->GetName(), *EnterDetail);
+
 	if (Event.EventName != GameTaskFlowEvents::EVENT_ENEMY_DEATH)
 	{
 		return;
 	}
 
-	// [CN] EventData 是类型擦除负载，GetPtr 会做 UScriptStruct 类型校验，不会切片。
+	// EventData is a type-erased payload; GetPtr validates the UScriptStruct type, so nothing is sliced.
 	const FTaskFlowKillTargetEvent* KillEvt = Event.EventData.GetPtr<FTaskFlowKillTargetEvent>();
 	if (KillEvt == nullptr)
 	{
+		LogTaskFlowLifecycle(
+			TEXT("<None>"), TEXT("KillRejected"), GetName(),
+			*GetClass()->GetName(), TEXT("EventData is not FTaskFlowKillTargetEvent"));
 		return;
 	}
 
 	if (AIID != 0 && KillEvt->AIID != AIID)
 	{
+		const FString RejectDetail = FString::Printf(TEXT("ExpectedAIID=%lld ActualAIID=%lld"), AIID, KillEvt->AIID);
+		LogTaskFlowLifecycle(
+			TEXT("<None>"), TEXT("KillRejected"), GetName(),
+			*GetClass()->GetName(), *RejectDetail);
 		return;
 	}
 
-	// [CN] 进度达标时基类 TryComplete() 会自动解绑事件并 FinishExecution()。
+	// When progress reaches the target, the base TryComplete() unbinds the event and calls FinishExecution().
 	AddProgress(1);
 
-	const FString Detail = FString::Printf(TEXT("AIID=%lld"), KillEvt->AIID);
+	const FString Detail = FString::Printf(TEXT("AIID=%lld Progress=%d/%d"),
+		KillEvt->AIID, CurrentProgress, MaxProgress);
 	LogTaskFlowLifecycle(
 		TEXT("<None>"), TEXT("KillAccepted"), GetName(),
 		*GetClass()->GetName(), *Detail);

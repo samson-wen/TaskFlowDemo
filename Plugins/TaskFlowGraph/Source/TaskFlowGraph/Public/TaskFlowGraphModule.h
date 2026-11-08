@@ -2,7 +2,7 @@
 
 #include "Modules/ModuleManager.h"
 
-/** [EN] Runtime module for the TaskFlowGraph plugin. [CN] TaskFlowGraph 插件的运行时模块。 */
+/** Runtime module for the TaskFlowGraph plugin. */
 class FTaskFlowGraphModule final : public IModuleInterface
 {
 public:

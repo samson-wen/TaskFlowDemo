@@ -64,12 +64,12 @@ FLinearColor UTaskFlowNode::GetStateColor() const
 	switch (NodeState)
 	{
 	case ETaskFlowNodeState::Executing:
-		return FLinearColor(1.0f, 0.75f, 0.1f);   // [EN] Yellow [CN] 黄色
+		return FLinearColor(1.0f, 0.75f, 0.1f);   // Yellow
 	case ETaskFlowNodeState::Succeeded:
-		return FLinearColor(0.1f, 0.6f, 0.2f);    // [EN] Green [CN] 绿色
+		return FLinearColor(0.1f, 0.6f, 0.2f);    // Green
 	case ETaskFlowNodeState::NotExecuted:
 	default:
-		return FLinearColor(0.45f, 0.45f, 0.45f); // [EN] Gray [CN] 灰色
+		return FLinearColor(0.45f, 0.45f, 0.45f); // Gray
 	}
 }
 
@@ -177,8 +177,7 @@ void UTaskFlowNode::CollectNodesFromPin(const UEdGraphPin* Pin, TArray<UTaskFlow
 
 void UTaskFlowNode::Execute_Implementation(UTaskFlowRunner* Runner)
 {
-	// [EN] Default implementation: finish immediately and advance to the next node.
-	// [CN] 默认实现：执行完立即推进到下一个节点
+	// Default implementation: finish immediately and advance to the next node.
 	FinishExecution();
 }
 
@@ -195,8 +194,13 @@ void UTaskFlowNode::FinishExecution()
 
 void UTaskFlowNode::OnFlowEnded()
 {
-	// [CN] 流程已结束，断开 Runner，避免节点之后再通过 FinishExecution 试图推进流程。
+	// The flow has ended; detach the Runner so the node cannot try to advance the flow later via FinishExecution.
 	ActiveRunner = nullptr;
+}
+
+bool UTaskFlowNode::ShouldMarkSucceededOnFinish() const
+{
+	return true;
 }
 
 void UTaskFlowNode::BeginExecution(UTaskFlowRunner* Runner)

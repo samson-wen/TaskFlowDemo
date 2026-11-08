@@ -9,19 +9,16 @@
 FTaskFlowConnectionDrawingPolicy::FTaskFlowConnectionDrawingPolicy(int32 InBackLayerID, int32 InFrontLayerID, float InZoomFactor, const FSlateRect& InClippingRect, FSlateWindowElementList& InDrawElements, UEdGraph* InGraphObj)
 	: FConnectionDrawingPolicy(InBackLayerID, InFrontLayerID, InZoomFactor, InClippingRect, InDrawElements)
 {
-	// [EN] The graph object is provided by the schema but the base policy no longer stores it; we read node state from the pins directly.
-	// [CN] 基类不再保存图对象（由 schema 传入），节点状态直接从引脚读取，这里忽略该参数。
+	// The graph object is provided by the schema but the base policy no longer stores it; we read node state from the pins directly.
 	(void)InGraphObj;
 }
 
 void FTaskFlowConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVector2f& Start, const FVector2f& End, const FConnectionParams& Params)
 {
-	// [EN] Draw the normal wire first.
-	// [CN] 先绘制普通连线
+	// Draw the normal wire first.
 	FConnectionDrawingPolicy::DrawConnection(LayerId, Start, End, Params);
 
-	// [EN] The receiving end of a flow link is the input pin (AssociatedPin2). Animate only when that node is running or done.
-	// [CN] 流程连线的接收端是输入引脚（AssociatedPin2）；仅当该节点正在执行或已执行成功时才播放动效
+	// The receiving end of a flow link is the input pin (AssociatedPin2). Animate only when that node is running or done.
 	const UEdGraphPin* TargetPin = Params.AssociatedPin2;
 	if (TargetPin == nullptr)
 	{
@@ -43,7 +40,7 @@ void FTaskFlowConnectionDrawingPolicy::DrawConnection(int32 LayerId, const FVect
 
 namespace
 {
-	/** [EN] Sample a point at the given arc-length distance along a polyline. [CN] 沿折线按弧长取点 */
+	/** Sample a point at the given arc-length distance along a polyline. */
 	FVector2f SampleAtArcLength(const TArray<FVector2f>& Points, const TArray<float>& Cumulative, float Distance)
 	{
 		for (int32 i = 1; i < Cumulative.Num(); ++i)
@@ -61,8 +58,7 @@ namespace
 
 void FTaskFlowConnectionDrawingPolicy::DrawFlowDots(int32 LayerId, const FVector2f& Start, const FVector2f& End, const FConnectionParams& Params) const
 {
-	// [EN] Rebuild the exact same cubic bezier the base policy uses, so dots sit on the wire.
-	// [CN] 重建基类使用的三次贝塞尔曲线，让圆点精确落在线上
+	// Rebuild the exact same cubic bezier the base policy uses, so dots sit on the wire.
 	const FVector2f P0 = Start;
 	const FVector2f P1 = End;
 	const FVector2f SplineTangent = ComputeSplineTangent(P0, P1);
@@ -93,8 +89,7 @@ void FTaskFlowConnectionDrawingPolicy::DrawFlowDots(int32 LayerId, const FVector
 		return;
 	}
 
-	// [EN] Marching offset driven by wall-clock time so dots flow from source to target.
-	// [CN] 用真实时间驱动偏移，让圆点从源头流向目标
+	// Marching offset driven by wall-clock time so dots flow from source to target.
 	const double Time = FSlateApplication::Get().GetCurrentTime();
 	const float Spacing = 22.f;
 	const float Radius = 2.5f;

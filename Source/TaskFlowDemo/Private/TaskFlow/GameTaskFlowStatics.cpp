@@ -10,7 +10,7 @@
 
 void UGameTaskFlowStatics::BroadcastKillTargetTaskFlow(ACharacter* InKillerCharacter, ACharacter* InDeathCharacter)
 {
-	// [CN] 死亡角色必须有效；击杀者可能为空（环境伤害 / 伤害来源已销毁），此时仍要广播，Sender 留空。
+	// The dead character must be valid; the killer may be null (environmental damage / destroyed instigator), in which case we still broadcast with an empty Sender.
 	if (IsValid(InDeathCharacter) == false)
 	{
 		return;
@@ -32,10 +32,10 @@ void UGameTaskFlowStatics::BroadcastKillTargetTaskFlow(ACharacter* InKillerChara
 	TaskFlowEvt.EventName = GameTaskFlowEvents::EVENT_ENEMY_DEATH;
 	TaskFlowEvt.Sender = InKillerCharacter;
 
-	// [CN] 击杀专属数据放进类型擦除的 EventData，经动态委托派发时会被深拷贝，不会被切片。
+	// Put kill-specific data into the type-erased EventData; the dynamic delegate deep-copies it, so it is not sliced.
 	FTaskFlowKillTargetEvent& KillTargetEvt = TaskFlowEvt.EventData.InitializeAs<FTaskFlowKillTargetEvent>();
 
-	// [CN] AIID 取自死亡敌人本体；非 ACombatEnemy 的死亡不携带标识（0 = 任意）。
+	// AIID comes from the dead enemy itself; non-ACombatEnemy deaths carry no identifier (0 = any).
 	const ACombatEnemy* DeadEnemy = Cast<ACombatEnemy>(InDeathCharacter);
 	KillTargetEvt.AIID = DeadEnemy != nullptr ? DeadEnemy->GetAIID() : 0;
 

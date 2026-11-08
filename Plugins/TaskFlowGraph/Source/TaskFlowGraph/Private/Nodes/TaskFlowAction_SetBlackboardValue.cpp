@@ -2,8 +2,7 @@
 
 #include "Nodes/TaskFlowNode_Objective.h"
 
-// [EN] Implementation of the "Set Blackboard Value" action. It writes the configured value into the blackboard at execution, then finishes.
-// [CN] “设置黑板值”动作的实现。执行时把配置的值写入黑板，然后完成。
+// Implementation of the "Set Blackboard Value" action. It writes the configured value into the blackboard at execution, then finishes.
 #define LOCTEXT_NAMESPACE "TaskFlowAction_SetBlackboardValue"
 
 UTaskFlowAction_SetBlackboardValue::UTaskFlowAction_SetBlackboardValue()

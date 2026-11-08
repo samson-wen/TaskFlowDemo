@@ -15,6 +15,7 @@ UTaskFlowNode_Objective::UTaskFlowNode_Objective()
 	ObjectiveDescription = LOCTEXT("TaskFlowNode_Objective_DefaultDescription", "Complete this objective");
 }
 
+#if WITH_EDITOR
 void UTaskFlowNode_Objective::PreEditChange(FProperty* PropertyAboutToChange)
 {
 	Super::PreEditChange(PropertyAboutToChange);
@@ -36,27 +37,25 @@ void UTaskFlowNode_Objective::PostEditChangeProperty(FPropertyChangedEvent& Prop
 		if (IsNodeNameDuplicate())
 		{
 			NodeName = OldNodeName;
-			UE_LOG(LogTaskFlow, Warning, TEXT("[TaskFlow] Objective NodeName '%s' 已存在，已回退。"), *OldNodeName.ToString());
+			UE_LOG(LogTaskFlow, Warning, TEXT("[TaskFlow] Objective NodeName '%s' already exists; the change was reverted."), *OldNodeName.ToString());
 		}
 
-		// [EN] Node name changed; notify the editor to refresh the title display.
-		// [CN] 节点名变化，通知编辑器刷新标题显示
+		// Node name changed; notify the editor to refresh the title display.
 		UTaskFlowNode::OnNodeStateChanged().Broadcast(this);
 	}
 	else if (PropertyName == GET_MEMBER_NAME_CHECKED(UTaskFlowNode_Objective, ObjectiveDescription))
 	{
-		// [EN] Description changed; notify the editor to refresh the title display.
-		// [CN] 描述变化，通知编辑器刷新标题显示
+		// Description changed; notify the editor to refresh the title display.
 		UTaskFlowNode::OnNodeStateChanged().Broadcast(this);
 	}
 }
+#endif
 
 bool UTaskFlowNode_Objective::IsNodeNameDuplicate() const
 {
 	if (NodeName.IsNone())
 	{
-		// [EN] Unnamed nodes are not validated.
-		// [CN] 未命名不校验
+		// Unnamed nodes are not validated.
 		return false;
 	}
 
@@ -85,22 +84,19 @@ bool UTaskFlowNode_Objective::IsNodeNameDuplicate() const
 
 FText UTaskFlowNode_Objective::GetNodeTitle(ENodeTitleType::Type TitleType) const
 {
-	// [EN] Prefer showing the objective description.
-	// [CN] 优先显示目标描述
+	// Prefer showing the objective description.
 	if (!ObjectiveDescription.IsEmpty())
 	{
 		return ObjectiveDescription;
 	}
 
-	// [EN] Then the node name.
-	// [CN] 其次显示节点名称
+	// Then the node name.
 	if (!NodeName.IsNone())
 	{
 		return FText::FromName(NodeName);
 	}
 
-	// [EN] Finally fall back to the class name (friendly name after stripping the TaskFlowNode_ prefix, i.e. "Objective").
-	// [CN] 最后回退到类名（去掉 TaskFlowNode_ 前缀后的友好名，即 "Objective"）
+	// Finally fall back to the class name (friendly name after stripping the TaskFlowNode_ prefix, i.e. "Objective").
 	return Super::GetNodeTitle(TitleType);
 }
 
@@ -123,8 +119,7 @@ void UTaskFlowNode_Objective::PostPasteNode()
 {
 	Super::PostPasteNode();
 
-	// [EN] After paste the NodeName may collide with the original; clear it on collision to avoid uniqueness conflicts.
-	// [CN] 粘贴后 NodeName 可能与原节点重复，重复则清空，避免唯一性冲突
+	// After paste the NodeName may collide with the original; clear it on collision to avoid uniqueness conflicts.
 	if (IsNodeNameDuplicate())
 	{
 		NodeName = NAME_None;
@@ -133,21 +128,29 @@ void UTaskFlowNode_Objective::PostPasteNode()
 
 void UTaskFlowNode_Objective::Execute_Implementation(UTaskFlowRunner* Runner)
 {
-	// [EN] Execute the Actions list from the beginning.
-	// [CN] 从头开始执行 Actions 列表
+	// Execute the Actions list from the beginning.
 	CurrentActionIndex = 0;
 	CurrentProgress = 0;
 	bAdvancingActions = false;
 	bActionsCompleted = false;
 	bFlowEnded = false;
 
-	// [CN] 本节点执行期间绑定到系统的 OnTaskFlowEvent 委托，自行接收事件（系统不再遍历内部节点）。
-	if (UTaskFlowSystem* System = Runner->GetTaskFlowSystem())
+	// Global events are not listened to by default; bind only when needed (editor toggle / subclass override / runtime API).
+	//      Either way, clear any binding left over from a previous execution first.
+	UnbindFromTaskFlowEvent();
+
+	if (ShouldListenToTaskFlowEvents())
 	{
-		// [CN] 先移除旧绑定避免重复绑定（同一节点重复执行时），再绑定，并缓存所用 System。
-		UnbindFromTaskFlowEvent();
-		System->OnTaskFlowEvent.AddDynamic(this, &UTaskFlowNode_Objective::HandleTaskFlowEvent);
-		BoundSystem = System;
+		if (UTaskFlowSystem* System = Runner->GetTaskFlowSystem())
+		{
+			BindToTaskFlowEvent(System);
+		}
+	}
+	else
+	{
+		LogTaskFlowLifecycle(
+			TEXT("<None>"), TEXT("EventSkipped"), GetName(),
+			*GetClass()->GetName(), TEXT("Listening disabled"));
 	}
 
 	ExecuteNextAction();
@@ -155,13 +158,13 @@ void UTaskFlowNode_Objective::Execute_Implementation(UTaskFlowRunner* Runner)
 
 void UTaskFlowNode_Objective::OnFlowEnded()
 {
-	// [CN] 流程已整体结束：本目标不再接收事件，也不允许迟到的动作回调继续推进。
+	// The whole flow has ended: this Objective no longer receives events, and late action callbacks cannot advance it.
 	bFlowEnded = true;
 
-	// [CN] 用缓存的 System 解绑，不依赖 ActiveRunner（流程结束时它可能已被清空）。
+	// Unbind using the cached System, not ActiveRunner (it may already be cleared when the flow ends).
 	UnbindFromTaskFlowEvent();
 
-	// [CN] 通知所有动作终止（异步动作会在此解绑自己的外部监听，并被标记为已完成）。
+	// Notify all Actions to stop (async Actions unbind their external listeners here and are marked finished).
 	for (TObjectPtr<UTaskFlowAction>& ActionPtr : Actions)
 	{
 		if (UTaskFlowAction* Action = ActionPtr.Get())
@@ -170,12 +173,12 @@ void UTaskFlowNode_Objective::OnFlowEnded()
 		}
 	}
 
-	// [CN] 复位执行状态，避免同一资产再次启动流程时残留。
+	// Reset execution state so nothing leaks into the next run of the same asset.
 	CurrentActionIndex = 0;
 	bAdvancingActions = false;
 	bActionsCompleted = false;
 
-	// [CN] 最后交给基类断开 Runner（此后 FinishExecution 不再推进流程）。
+	// Finally let the base class detach the Runner (FinishExecution no longer advances the flow afterwards).
 	Super::OnFlowEnded();
 }
 
@@ -188,8 +191,7 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 
 	if (bAdvancingActions)
 	{
-		// [EN] A synchronous action's Finish triggered a recursive callback; let the outer loop continue.
-		// [CN] 同步动作里 Finish 触发了递归回调，交给外层循环继续推进
+		// A synchronous action's Finish triggered a recursive callback; let the outer loop continue.
 		return;
 	}
 
@@ -202,8 +204,7 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 
 		if (Action == nullptr)
 		{
-			// [EN] Skip empty actions.
-			// [CN] 空动作直接跳过
+			// Skip empty actions.
 			continue;
 		}
 
@@ -211,8 +212,7 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 
 		if (!Action->IsFinished())
 		{
-			// [EN] Asynchronous action: wait for it to call Finish() later.
-			// [CN] 异步动作，等待它稍后调用 Finish()
+			// Asynchronous action: wait for it to call Finish() later.
 			bAdvancingActions = false;
 			return;
 		}
@@ -220,8 +220,7 @@ void UTaskFlowNode_Objective::ExecuteNextAction()
 
 	bAdvancingActions = false;
 
-	// [EN] All actions done; combine with progress to decide real completion.
-	// [CN] 动作全部完成，再结合进度判断是否真正完成
+	// All actions done; combine with progress to decide real completion.
 	bActionsCompleted = true;
 	TryComplete();
 }
@@ -245,21 +244,58 @@ void UTaskFlowNode_Objective::TryComplete()
 
 	if (MaxProgress > 0 && CurrentProgress < MaxProgress)
 	{
-		// [EN] Still waiting for progress to reach the target.
-		// [CN] 还需要等待进度达标
+		// Still waiting for progress to reach the target.
 		return;
 	}
 
-	// [CN] 完成时用缓存的 System 解除对 OnTaskFlowEvent 的绑定。
+	// On completion, unbind from OnTaskFlowEvent using the cached System.
 	UnbindFromTaskFlowEvent();
 
 	FinishExecution();
 }
 
+bool UTaskFlowNode_Objective::ShouldListenToTaskFlowEvents() const
+{
+	return bListenToTaskFlowEvents;
+}
+
+void UTaskFlowNode_Objective::SetTaskFlowEventListening(bool bEnable)
+{
+	bListenToTaskFlowEvents = bEnable;
+
+	// Only a node that is executing and whose flow has not ended may bind, to avoid leaving a global listener outside a flow.
+	if (!bEnable || bFlowEnded || GetNodeState() != ETaskFlowNodeState::Executing)
+	{
+		UnbindFromTaskFlowEvent();
+		return;
+	}
+
+	UnbindFromTaskFlowEvent();
+	if (UTaskFlowSystem* System = GetTaskFlowSystem())
+	{
+		BindToTaskFlowEvent(System);
+	}
+}
+
+void UTaskFlowNode_Objective::BindToTaskFlowEvent(UTaskFlowSystem* System)
+{
+	if (System == nullptr)
+	{
+		return;
+	}
+
+	System->OnTaskFlowEvent.AddDynamic(this, &UTaskFlowNode_Objective::HandleTaskFlowEvent);
+	BoundSystem = System;
+
+	LogTaskFlowLifecycle(
+		TEXT("<None>"), TEXT("EventBound"), GetName(),
+		*GetClass()->GetName(), TEXT("OnTaskFlowEvent"));
+}
+
 void UTaskFlowNode_Objective::UnbindFromTaskFlowEvent()
 {
-	// [CN] 只使用绑定时缓存的 System：TryComplete / OnFlowEnded 触发时 ActiveRunner 可能已被清空，
-	//      若改用 GetRunner()->GetTaskFlowSystem() 重新解析会拿不到 System，绑定就会残留。
+	// Use only the System cached at bind time: ActiveRunner may already be cleared when TryComplete / OnFlowEnded runs,
+	//      so re-resolving via GetRunner()->GetTaskFlowSystem() would fail and leave the binding behind.
 	if (UTaskFlowSystem* System = BoundSystem.Get())
 	{
 		System->OnTaskFlowEvent.RemoveAll(this);
@@ -275,7 +311,7 @@ void UTaskFlowNode_Objective::AddProgress(int32 Amount)
 
 void UTaskFlowNode_Objective::SetProgress(int32 Value)
 {
-	// [CN] 流程结束后忽略迟到的进度更新，避免残留回调改动运行时状态。
+	// Ignore late progress updates after the flow ends, so leftover callbacks cannot change runtime state.
 	if (bFlowEnded)
 	{
 		return;
@@ -283,8 +319,7 @@ void UTaskFlowNode_Objective::SetProgress(int32 Value)
 
 	CurrentProgress = Value;
 
-	// [EN] Notify the editor to refresh the node (updates the progress display).
-	// [CN] 通知编辑器刷新节点（更新进度显示）
+	// Notify the editor to refresh the node (updates the progress display).
 	UTaskFlowNode::OnNodeStateChanged().Broadcast(this);
 
 	TryComplete();
@@ -292,23 +327,30 @@ void UTaskFlowNode_Objective::SetProgress(int32 Value)
 
 void UTaskFlowNode_Objective::HandleTaskFlowEvent(const FTaskFlowEvent& Event)
 {
-	// [CN] 仅在本节点正在执行、且所属流程尚未结束时处理
-	//      （流程已到达 End / 被 Stop 后，残留的事件绑定不应再驱动任何动作）。
-	if (bFlowEnded || GetNodeState() != ETaskFlowNodeState::Executing)
+	const bool bBlocked = bFlowEnded || GetNodeState() != ETaskFlowNodeState::Executing;
+	const FString Detail = FString::Printf(TEXT("EventName=%s Blocked=%d"),
+		*Event.EventName.ToString(), bBlocked ? 1 : 0);
+	LogTaskFlowLifecycle(
+		TEXT("<None>"), TEXT("EventReceived"), GetName(),
+		*GetClass()->GetName(), *Detail);
+
+	// Handle the event only while this node is executing and its flow has not ended
+	//      (after the flow reaches End / is Stopped, a leftover event binding must not drive any action).
+	if (bBlocked)
 	{
 		return;
 	}
 
-	// [CN] 先交给子类钩子（专用 Objective 可直接处理事件），再转发给尚未完成的动作。
+	// Pass the event to the subclass hook first (specialized Objectives may handle it directly), then forward it to unfinished Actions.
 	OnTaskFlowEventReceived(Event);
 
-	// [CN] 钩子可能已经让本目标完成 / 流程结束，此处再校验一次，避免继续驱动动作。
+	// The hook may already have completed this Objective / ended the flow, so check again before driving Actions.
 	if (bFlowEnded || GetNodeState() != ETaskFlowNodeState::Executing)
 	{
 		return;
 	}
 
-	// [CN] 节点内自行监听并向尚未完成的动作转发事件（系统不再遍历内部节点，由各节点自行处理）。
+	// The node listens itself and forwards events to unfinished Actions (the system no longer traverses internal nodes).
 	for (TObjectPtr<UTaskFlowAction>& ActionPtr : Actions)
 	{
 		UTaskFlowAction* Action = ActionPtr.Get();
@@ -322,13 +364,12 @@ void UTaskFlowNode_Objective::HandleTaskFlowEvent(const FTaskFlowEvent& Event)
 
 void UTaskFlowNode_Objective::OnTaskFlowEventReceived(const FTaskFlowEvent& Event)
 {
-	// [EN] Default: no direct handling; specialized Objective subclasses override.
-	// [CN] 默认不直接处理，专用目标子类重写。
+	// Default: no direct handling; specialized Objective subclasses override.
 }
 
 UTaskFlowSystem* UTaskFlowNode_Objective::GetTaskFlowSystem() const
 {
-	// [CN] 优先经由所属目标节点当前执行的 Runner 取得系统（最可靠）。
+	// Prefer the system resolved through the owning Objective's current Runner (most reliable).
 	if (UTaskFlowRunner* Runner = this->GetRunner())
 	{
 		if (UTaskFlowSystem* System = Runner->GetTaskFlowSystem())
@@ -337,7 +378,7 @@ UTaskFlowSystem* UTaskFlowNode_Objective::GetTaskFlowSystem() const
 		}
 	}
 
-	// [CN] 回退：通过动作对象的 World 上下文直接取世界子系统。
+	// Fallback: resolve the world subsystem through this object's World context.
 	return UTaskFlowSystem::Get(this);
 }
 

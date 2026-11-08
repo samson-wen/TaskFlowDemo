@@ -16,22 +16,18 @@ class UWorld;
 
 struct FTaskFlowEvent;
 
-/** [EN] Broadcasted when a task flow finishes. [CN] 流程执行完毕广播 */
+/** Broadcasted when a task flow finishes. */
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnTaskFlowFinished, UTaskFlowRunner*, Runner);
 
 /**
- * [EN] Task flow executor.
- * [CN] 任务流程执行器。
+ * Task flow executor.
  *
- * [EN] Usage: UTaskFlowRunner::StartTaskFlow(WorldContext, TaskFlowAsset).
- * [CN] 用法：UTaskFlowRunner::StartTaskFlow(WorldContext, TaskFlowAsset)，
- * [EN] The executor starts from the Start node and follows the connections until there is no successor (or it reaches an End node).
- * [CN] 执行器会从 Start 节点开始，沿着连线推进，直到没有后继节点（或到达 End 节点）。
- * [EN] When one node's output pin connects to multiple nodes, all of them start together as one parallel batch;
+ * Usage: UTaskFlowRunner::StartTaskFlow(WorldContext, TaskFlowAsset).
+ * The executor starts from the Start node and follows the connections until there is no successor (or it reaches an End node).
+ * When one node's output pin connects to multiple nodes, all of them start together as one parallel batch;
  * each branch then advances independently. The flow ends after every branch has finished, OR immediately when
  * any End node is reached (all other active / pending nodes are stopped in that case).
- * [CN] 一个节点的输出引脚连了多个节点时，这些节点作为同一批次一齐开始执行，各分支随后独立推进；
- * 所有分支都执行完才算流程结束，但任一 End 节点被执行会立即终止整个流程，并停止其它所有激活 / 待执行节点。
+ * The flow ends when all branches finish, but executing any End node immediately terminates the whole flow and stops all other active / pending nodes.
  */
 UCLASS(BlueprintType)
 class TASKFLOWGRAPH_API UTaskFlowRunner : public UObject
@@ -39,49 +35,49 @@ class TASKFLOWGRAPH_API UTaskFlowRunner : public UObject
 	GENERATED_BODY()
 
 public:
-	/** [EN] Start executing a task flow and return the runner instance. [CN] 开始执行一个任务流程，返回执行器实例；InContext 传入 PlayerState 表示个人任务，传入 GameState 表示全局任务 */
+	/** Start executing a task flow and return the runner instance. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject", DisplayName = "Start Task Flow"))
 	static UTaskFlowRunner* StartTaskFlow(const UObject* WorldContextObject, UTaskFlowAsset* InAsset, AActor* InContext = nullptr);
 
-	/** [EN] Start executing with an existing instance; the World is resolved via the Outer (e.g. UTaskFlowSystem). [CN] 使用已有实例开始执行流程，世界通过 Outer（例如 UTaskFlowSystem）解析 */
+	/** Start executing with an existing instance; the World is resolved via the Outer (e.g. UTaskFlowSystem). */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	void Start(UTaskFlowAsset* InAsset, AActor* InContext = nullptr);
 
-	/** [EN] Abort the flow. [CN] 中断流程 */
+	/** Abort the flow. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	void Stop();
 
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	bool IsRunning() const;
 
-	/** [EN] One of the nodes currently executing in parallel; returns nullptr when no branch is active. [CN] 当前并行执行的节点之一；没有活跃分支时返回 nullptr */
+	/** One of the nodes currently executing in parallel; returns nullptr when no branch is active. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UTaskFlowNode* GetCurrentNode() const;
 
-	/** [EN] All nodes currently executing in parallel (one per active branch). [CN] 当前并行执行的所有节点（每条活跃分支一个） */
+	/** All nodes currently executing in parallel (one per active branch). */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	void GetActiveNodes(TArray<UTaskFlowNode*>& OutNodes) const;
 
-	/** [EN] The World during execution; nodes can use it to get the TimerManager for async logic. [CN] 执行期间所在的 World，节点里可以用它拿 TimerManager 做异步逻辑 */
+	/** The World during execution; nodes can use it to get the TimerManager for async logic. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	UWorld* GetTaskFlowWorld() const;
 
-	/** [EN] Called when a node finishes, to advance the flow. [CN] 节点完成时回调，用于推进流程 */
+	/** Called when a node finishes, to advance the flow. */
 	void NotifyNodeFinished(UTaskFlowNode* Node);
 
-	/** [EN] Emit a task flow event outward to the external world (external code / registered receivers). [CN] 从流程内部向外界发出事件（外界代码 / 已注册的外部接收者） */
+	/** Emit a task flow event outward to the external world (external code / registered receivers). */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Event", meta = (DisplayName = "Emit Task Flow Event"))
 	void EmitEvent(const FTaskFlowEvent& Event);
 
-	/** [EN] Convenience overload to emit an outbound event by name. [CN] 按名称发出出站事件的便捷重载 */
+	/** Convenience overload to emit an outbound event by name. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Event", meta = (DisplayName = "Emit Task Flow Event By Name"))
 	void EmitEventByName(FName EventName, UObject* Sender = nullptr, const FString& Payload = TEXT(""));
 
-	/** [EN] Resolve the owning TaskFlowSystem via the World. [CN] 通过 World 解析所属的 TaskFlowSystem */
+	/** Resolve the owning TaskFlowSystem via the World. */
 	UTaskFlowSystem* GetTaskFlowSystem() const;
 
 	//~ Begin Blackboard read/write (internal; nodes/actions forward here via their own UFUNCTIONs)
-	//~ 黑板读写（内部使用，节点/动作通过各自的 UFUNCTION 转发到这里）
+	//~ Blackboard read/write (internal; nodes / actions forward here through their own UFUNCTIONs)
 	bool SetBlackboardInt(FName Key, int32 Value);
 	bool GetBlackboardInt(FName Key, int32& OutValue) const;
 
@@ -101,81 +97,81 @@ public:
 	bool GetBlackboardObject(FName Key, UObject*& OutValue) const;
 	//~ End Blackboard read/write
 
-	/** [EN] The context passed in (PlayerState, GameState, etc.). [CN] 传入的上下文（PlayerState 或 GameState 等） */
+	/** The context passed in (PlayerState, GameState, etc.). */
 	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
 	TObjectPtr<AActor> Context;
 
-	/** [EN] The PlayerState that owns a personal task (passing a PlayerState means a personal task). [CN] 个人任务所属的 PlayerState（传入 PlayerState 表示个人任务） */
+	/** The PlayerState that owns a personal task (passing a PlayerState means a personal task). */
 	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
 	TObjectPtr<APlayerState> PlayerStateOwner;
 
-	/** [EN] The GameState that owns a global task (passing a GameState means a global task). [CN] 全局任务所属的 GameState（传入 GameState 表示全局任务） */
+	/** The GameState that owns a global task (passing a GameState means a global task). */
 	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
 	TObjectPtr<AGameStateBase> GameStateOwner;
 
-	/** [EN] Get the passed-in context. [CN] 获取传入的上下文 */
+	/** Get the passed-in context. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	AActor* GetContext() const { return Context.Get(); }
 
-	/** [EN] Get the PlayerState that owns the personal task. [CN] 获取个人任务所属的 PlayerState */
+	/** Get the PlayerState that owns the personal task. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	APlayerState* GetPlayerStateOwner() const { return PlayerStateOwner.Get(); }
 
-	/** [EN] Get the GameState that owns the global task. [CN] 获取全局任务所属的 GameState */
+	/** Get the GameState that owns the global task. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	AGameStateBase* GetGameStateOwner() const { return GameStateOwner.Get(); }
 
-	/** [EN] Whether this is a personal task (a PlayerState was passed in). [CN] 是否为个人任务（传入了 PlayerState） */
+	/** Whether this is a personal task (a PlayerState was passed in). */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	bool IsPersonalTask() const { return PlayerStateOwner.Get() != nullptr; }
 
-	/** [EN] Whether this is a global task (a GameState was passed in). [CN] 是否为全局任务（传入了 GameState） */
+	/** Whether this is a global task (a GameState was passed in). */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	bool IsGlobalTask() const { return GameStateOwner.Get() != nullptr; }
 
-	/** [EN] The task flow asset being executed. [CN] 正在执行的流程资产 */
+	/** The task flow asset being executed. */
 	UPROPERTY(BlueprintReadOnly, Category = "TaskFlow")
 	TObjectPtr<UTaskFlowAsset> Asset;
 
-	/** [EN] Broadcasted when the flow finishes (all branches end or it is aborted). [CN] 流程执行完毕（所有分支结束或被中断）时广播 */
+	/** Broadcasted when the flow finishes (all branches end or it is aborted). */
 	UPROPERTY(BlueprintAssignable, Category = "TaskFlow")
 	FOnTaskFlowFinished OnFinished;
 
-	/** [EN] Step interval (seconds) between nodes. 0 means run everything synchronously; >0 lets you watch nodes execute one by one. [CN] 节点之间步进的间隔（秒），0 表示同步一口气执行完；大于 0 时可看到节点逐个执行 */
+	/** Step interval (seconds) between nodes. 0 means run everything synchronously; >0 lets you watch nodes execute one by one. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "TaskFlow")
 	float StepDelaySeconds = 0.f;
 
 protected:
-	/** [EN] Drive the flow forward; does not recurse for synchronous nodes. [CN] 驱动流程往下走，处理同步节点时不会递归 */
+	/** Drive the flow forward; does not recurse for synchronous nodes. */
 	void Advance();
 
-	/** [EN] Schedule the next advance in step mode. [CN] 步进模式下，安排下一次推进 */
+	/** Schedule the next advance in step mode. */
 	void ScheduleAdvance();
 
-	/** [EN] Clear the step timer. [CN] 清除步进定时器 */
+	/** Clear the step timer. */
 	void ClearAdvanceTimer();
 
 	void FinishFlow();
 
-	/** [EN] Notify every node in the asset that the flow has ended, so Objective/Actions abort pending async work. [CN] 通知资产内所有节点流程已结束，让 Objective/Actions 终止未完成的异步工作 */
+	/** Notify every node in the asset that the flow has ended, so Objective/Actions abort pending async work. */
 	void NotifyNodesFlowEnded();
 
-	/** [EN] Validate that the context type matches the asset's task type (editor-only popup). [CN] 校验上下文类型与资产任务类型是否一致（仅编辑器下弹窗提示） */
+	/** Validate that the context type matches the asset's task type (editor-only popup). */
 	void ValidateContextType(UTaskFlowAsset* InAsset, AActor* InContext);
 
 protected:
-	/** [EN] All nodes currently executing in parallel; each one is waiting for its own FinishExecution. [CN] 当前并行执行中的所有节点，各自等待自己的 FinishExecution */
+	/** All nodes currently executing in parallel; each one is waiting for its own FinishExecution. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTaskFlowNode>> ActiveNodes;
 
-	/** [EN] Nodes waiting to be started together as the next parallel batch. [CN] 待作为下一并行批次一起启动的节点 */
+	/** Nodes waiting to be started together as the next parallel batch. */
 	UPROPERTY(Transient)
 	TArray<TObjectPtr<UTaskFlowNode>> PendingNodes;
 
 	UPROPERTY(Transient)
 	TWeakObjectPtr<UWorld> WorldPtr;
 
-	/** [EN] Runtime blackboard values (Key -> value), initialized from the asset blackboard. [CN] 运行时黑板值（Key -> 值），由资产黑板初始化 */
+	/** Runtime blackboard values (Key -> value), initialized from the asset blackboard. */
 	UPROPERTY(Transient)
 	TMap<FName, FTaskFlowBlackboardEntry> BlackboardValues;
 
@@ -184,6 +180,6 @@ protected:
 
 	bool bAdvancing = false;
 
-	/** [EN] Timer handle used in step mode. [CN] 步进模式使用的定时器句柄 */
+	/** Timer handle used in step mode. */
 	FTimerHandle AdvanceTimerHandle;
 };

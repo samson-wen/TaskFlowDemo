@@ -21,10 +21,8 @@ public:
 	ATaskFlowDemoGameMode();
 
 	/**
-	 *  [EN] Optional default task flow started automatically on BeginPlay through the TaskFlowGraph plugin.
-	 *  [CN] 可选：在 BeginPlay 时通过 TaskFlowGraph 插件自动启动的默认任务流程。
-	 *  [EN] Leave null to disable auto-start. The TaskFlowSystem world subsystem drives execution.
-	 *  [CN] 留空则不自动启动；由 TaskFlowSystem 世界子系统驱动执行。
+	 *  Optional default task flow started automatically on BeginPlay through the TaskFlowGraph plugin.
+	 *  Leave null to disable auto-start. The TaskFlowSystem world subsystem drives execution.
 	 */
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "TaskFlow")
 	TObjectPtr<UTaskFlowAsset> DefaultTaskFlow;

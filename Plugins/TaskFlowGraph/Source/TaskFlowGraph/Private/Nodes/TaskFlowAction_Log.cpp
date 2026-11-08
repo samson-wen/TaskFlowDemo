@@ -4,8 +4,7 @@
 
 #define LOCTEXT_NAMESPACE "TaskFlowAction_Log"
 
-// [EN] Sample action that logs a message. Default message is set in the constructor.
-// [CN] 示例动作：打印一条日志。构造函数设置了默认消息。
+// Sample action that logs a message. Default message is set in the constructor.
 UTaskFlowAction_Log::UTaskFlowAction_Log()
 {
 	Message = TEXT("Hello TaskFlow");

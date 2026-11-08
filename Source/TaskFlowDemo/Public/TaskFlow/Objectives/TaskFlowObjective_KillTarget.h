@@ -7,16 +7,15 @@
 class UTaskFlowRunner;
 
 /**
- * [EN] Specialized Objective node that completes when the required number of enemies die.
- * [CN] 专用目标节点：击杀指定数量的敌人后完成。
+ * Specialized Objective node that completes when the required number of enemies die.
  *
- * [EN] Handles EVENT_ENEMY_DEATH directly via OnTaskFlowEventReceived; no Action needs to be added.
+ * Handles EVENT_ENEMY_DEATH directly via OnTaskFlowEventReceived; no Action needs to be added.
+ * It overrides ShouldListenToTaskFlowEvents() to opt into the (otherwise disabled) global event subscription.
  * The base class owns the event binding/unbinding (cached System) and the flow-ended guard.
- * [CN] 通过 OnTaskFlowEventReceived 直接处理 EVENT_ENEMY_DEATH，无需在 Actions 里挂任何动作；
- * 事件委托的绑定/解绑（缓存 System）与流程结束拦截都由基类负责。
+ * The base class does not subscribe to global events by default; this node overrides ShouldListenToTaskFlowEvents() to opt in;
+ * binding / unbinding the event delegate (cached System) and the flow-ended guard are handled by the base class.
  *
- * [EN] Set MaxProgress (inherited >= 1) to require multiple kills. AIID = 0 matches any enemy.
- * [CN] 需要多次击杀时把继承来的 MaxProgress 设为 N；AIID = 0 表示匹配任意敌人。
+ * Set MaxProgress (inherited >= 1) to require multiple kills. AIID = 0 matches any enemy.
  */
 UCLASS(Blueprintable, meta = (DisplayName = "KillTarget Objective", TaskFlowCategory = "Task"))
 class TASKFLOWDEMO_API UTaskFlowObjective_KillTarget : public UTaskFlowNode_Objective
@@ -35,8 +34,11 @@ public:
 protected:
 	virtual void OnTaskFlowEventReceived(const FTaskFlowEvent& Event) override;
 
+	/** This Objective requires OnTaskFlowEvent to count kills, so it always opts in. */
+	virtual bool ShouldListenToTaskFlowEvents() const override;
+
 public:
-	/** [EN] Only count deaths of the enemy with this AIID; 0 means any enemy. [CN] 仅统计该 AIID 的敌人死亡；0 表示任意敌人 */
+	/** Only count deaths of the enemy with this AIID; 0 means any enemy. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Kill Target")
 	int64 AIID = 0;
 };

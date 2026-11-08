@@ -6,8 +6,7 @@
 
 #define LOCTEXT_NAMESPACE "TaskFlowAction_ReachVolume"
 
-// [EN] Sample action that logs a message. Default message is set in the constructor.
-// [CN] 示例动作：打印一条日志。构造函数设置了默认消息。
+// Sample action that logs a message. Default message is set in the constructor.
 UTaskFlowAction_ReachVolume::UTaskFlowAction_ReachVolume()
 {
 
@@ -20,12 +19,12 @@ FText UTaskFlowAction_ReachVolume::GetActionName() const
 
 void UTaskFlowAction_ReachVolume::Execute_Implementation(UTaskFlowNode_Objective* OwnerNode)
 {
-	// [CN] 异步动作：不在 Execute 中完成，改为自行订阅系统的 OnTaskFlowEvent，
-	//      等待体积进入事件（不再依赖目标节点转发）。
+	// Asynchronous action: it does not finish inside Execute; instead it subscribes to the system's OnTaskFlowEvent
+	//      and waits for the volume-enter event (it no longer relies on Objective node forwarding).
 	UTaskFlowSystem* System = GetTaskFlowSystem();
 	if (System != nullptr)
 	{
-		// [CN] 先清理可能残留的绑定（同一动作实例会跨多次运行复用），再绑定，并缓存所用 System。
+		// Clear any leftover binding first (the same action instance is reused across runs), then bind and cache the System.
 		UnbindFromTaskFlowEvent();
 		System->OnTaskFlowEvent.AddDynamic(this, &UTaskFlowAction_ReachVolume::OnTaskFlowEventReceived);
 		BoundSystem = System;
@@ -38,27 +37,27 @@ void UTaskFlowAction_ReachVolume::Execute_Implementation(UTaskFlowNode_Objective
 
 void UTaskFlowAction_ReachVolume::OnTaskFlowEventReceived(const FTaskFlowEvent& Event)
 {
-	// [CN] 已完成的动作不再处理（防御性，避免重复触发）。
+	// Ignore events once the action is finished (defensive, avoids duplicate triggers).
 	if (IsFinished())
 	{
 		return;
 	}
 
-	// [CN] 事件名不匹配直接忽略。
+	// Ignore events whose name does not match.
 	if (Event.EventName != GameTaskFlowEvents::EVENT_TASKFLOW_VOLUME_ENTER)
 	{
 		return;
 	}
 
-	// [CN] 从类型擦除的负载中按类型安全取回体积数据；非体积事件 / 未填负载时返回 nullptr。
-	//      （FInstancedStruct 自带 UScriptStruct，GetPtr 会做类型校验，不再需要向下转型）
+	// Retrieve volume data from the type-erased payload with a type check; returns nullptr for non-volume events / empty payloads.
+	//      (FInstancedStruct carries its own UScriptStruct; GetPtr validates the type, so no down-cast is needed)
 	const FTaskFlowVolumeEvent* VolumeEvt = Event.EventData.GetPtr<FTaskFlowVolumeEvent>();
 	if (VolumeEvt == nullptr)
 	{
 		return;
 	}
 
-	// [CN] 按配置的过滤条件比对；未配置的条件不参与过滤。
+	// Compare against the configured filters; filters that are not configured are skipped.
 	if (VolumeID != 0 && VolumeEvt->VolumeID != VolumeID)
 	{
 		return;
@@ -67,7 +66,7 @@ void UTaskFlowAction_ReachVolume::OnTaskFlowEventReceived(const FTaskFlowEvent& 
 	{
 		return;
 	}
-	// [CN] 命中：完成本动作，目标节点将推进到下一个动作 / 完成。
+	// Match: finish this action; the Objective node will advance to the next action / complete.
 	Finish();
 }
 
@@ -80,16 +79,16 @@ void UTaskFlowAction_ReachVolume::Finish()
 
 void UTaskFlowAction_ReachVolume::OnFlowEnded()
 {
-	// [CN] 流程已结束：先解绑全局事件监听，再交给基类把本动作标记为已完成。
+	// The flow has ended: unbind the global event listener first, then let the base class mark this action finished.
 	UnbindFromTaskFlowEvent();
 	Super::OnFlowEnded();
 }
 
 void UTaskFlowAction_ReachVolume::UnbindFromTaskFlowEvent()
 {
-	// [CN] 只使用绑定时缓存的 System：此时 ActiveRunner 往往已被清空，GetTaskFlowSystem() 会返回 nullptr，
-	//      若依赖它解绑就会整块跳过，导致委托残留、后续事件仍能触发本动作。
-	//      （Broadcast 内部拷贝调用列表，此处修改实时列表是安全的。）
+	// Use only the System cached at bind time: ActiveRunner is often cleared by now and GetTaskFlowSystem() would return nullptr,
+	//      which would skip unbinding entirely, leaving the delegate behind so later events still trigger this action.
+	//      (Broadcast copies its invocation list internally, so modifying the live list here is safe.)
 	UTaskFlowSystem* System = BoundSystem.Get();
 	if (System != nullptr)
 	{

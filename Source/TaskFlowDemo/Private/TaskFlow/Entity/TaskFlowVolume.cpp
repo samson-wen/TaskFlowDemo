@@ -16,7 +16,7 @@ void ATaskFlowVolume::BeginPlay()
 
 	if (bEnableCharacterOverlapEvent && this->HasAuthority())
 	{
-		// [EN] Ensure the volume's brush reports overlaps so the events actually fire.
+		// Ensure the volume's brush reports overlaps so the events actually fire.
 		if (UBrushComponent* BrushComp = GetBrushComponent())
 		{
 			BrushComp->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -30,16 +30,16 @@ void ATaskFlowVolume::BeginPlay()
 
 void ATaskFlowVolume::OnCharacterOverlapBegin_Implementation(ACharacter* Character)
 {
-	// [CN] 默认实现：向 TaskFlowSystem 全局广播“角色进入体积”事件。
-	//      事件名规则：已设 VolumeTag 时为 "<VolumeTag>_Enter"，否则为 "TaskFlowVolume_<VolumeID>_Enter"。
-	//      开发者在蓝图 / C++ 覆写时，可调用 Parent 以保留此广播，或在其中自行接入 TaskFlow。
+	// Default implementation: broadcast a 'character entered volume' event through TaskFlowSystem.
+	//      Event name rule: "<VolumeTag>_Enter" when VolumeTag is set, otherwise "TaskFlowVolume_<VolumeID>_Enter".
+	//      When overriding in Blueprint / C++, call the parent to keep this broadcast, or wire up TaskFlow yourself.
 	if (UTaskFlowSystem* TaskFlowSystem = GetWorld()->GetSubsystem<UTaskFlowSystem>())
 	{
 		FTaskFlowEvent TaskFlowEvt;
 		TaskFlowEvt.EventName = GameTaskFlowEvents::EVENT_TASKFLOW_VOLUME_ENTER;
 		TaskFlowEvt.Sender = Character;
 
-		// [CN] 体积专属数据放进类型擦除的 EventData，经动态委托派发时会被深拷贝，不会被切片。
+		// Put volume-specific data into the type-erased EventData; the dynamic delegate deep-copies it, so it is not sliced.
 		FTaskFlowVolumeEvent& VolumeEvt = TaskFlowEvt.EventData.InitializeAs<FTaskFlowVolumeEvent>();
 		VolumeEvt.VolumeID = this->VolumeID;
 		VolumeEvt.VolumeTag = this->VolumeTag;
@@ -50,7 +50,7 @@ void ATaskFlowVolume::OnCharacterOverlapBegin_Implementation(ACharacter* Charact
 
 void ATaskFlowVolume::OnCharacterOverlapEnd_Implementation(ACharacter* Character)
 {
-	// [CN] 默认实现：向 TaskFlowSystem 全局广播“角色离开体积”事件。
+	// Default implementation: broadcast a 'character left volume' event through TaskFlowSystem.
 	if (UTaskFlowSystem* TaskFlowSystem = GetWorld()->GetSubsystem<UTaskFlowSystem>())
 	{
 		FTaskFlowEvent TaskFlowEvt;

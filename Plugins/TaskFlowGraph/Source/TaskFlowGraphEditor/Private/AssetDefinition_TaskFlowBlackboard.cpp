@@ -8,7 +8,7 @@
 
 FText UAssetDefinition_TaskFlowBlackboard::GetAssetDisplayName() const
 {
-	return LOCTEXT("AssetDefinition_TaskFlowBlackboard_DisplayName", "任务黑板");
+	return LOCTEXT("AssetDefinition_TaskFlowBlackboard_DisplayName", "Task Flow Blackboard");
 }
 
 FLinearColor UAssetDefinition_TaskFlowBlackboard::GetAssetColor() const

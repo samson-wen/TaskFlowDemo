@@ -22,9 +22,11 @@
 #include "SGraphPanel.h"
 #include "ScopedTransaction.h"
 #include "Styling/AppStyle.h"
+#include "Subsystems/AssetEditorSubsystem.h"
 #include "Widgets/Docking/SDockTab.h"
 
 #include "Nodes/TaskFlowNode.h"
+#include "Nodes/TaskFlowNode_SubFlow.h"
 #include "TaskFlowAsset.h"
 #include "TaskFlowGraph.h"
 #include "TaskFlowGraphSerializer.h"
@@ -84,9 +86,9 @@ void FTaskFlowGraphEditor::CreateInternalWidgets()
 
 	SGraphEditor::FGraphEditorEvents GraphEvents;
 	GraphEvents.OnSelectionChanged = SGraphEditor::FOnSelectionChanged::CreateSP(this, &FTaskFlowGraphEditor::OnSelectedNodesChanged);
+	GraphEvents.OnNodeDoubleClicked = FSingleNodeEvent::CreateSP(this, &FTaskFlowGraphEditor::OnNodeDoubleClicked);
 
-	// [EN] Bind the Delete key to delete selected nodes.
-	// [CN] 绑定 Delete 键：删除选中节点
+	// Bind the Delete key to delete selected nodes.
 	FGenericCommands::Register();
 	GraphEditorCommands = MakeShared<FUICommandList>();
 	GraphEditorCommands->MapAction(
@@ -121,16 +123,13 @@ void FTaskFlowGraphEditor::CreateInternalWidgets()
 		.Appearance(this, &FTaskFlowGraphEditor::GetGraphAppearance)
 		.GraphEvents(GraphEvents);
 
-	// [EN] Subscribe to node state changes to refresh node colors at runtime (gray/yellow/green).
-	// [CN] 订阅节点状态变化，运行时刷新节点颜色（灰/黄/绿）
+	// Subscribe to node state changes to refresh node colors at runtime (gray/yellow/green).
 	NodeStateChangedHandle = UTaskFlowNode::OnNodeStateChanged().AddRaw(this, &FTaskFlowGraphEditor::OnNodeStateChanged);
 
-	// [EN] Subscribe to PIE end to reset nodes to gray after stopping a run.
-	// [CN] 订阅 PIE 结束，停止运行时把节点重置为灰色
+	// Subscribe to PIE end to reset nodes to gray after stopping a run.
 	PieEndHandle = FEditorDelegates::EndPIE.AddRaw(this, &FTaskFlowGraphEditor::OnPIEEnded);
 
-	// [EN] Subscribe to PIE begin to start the connection-flow animation.
-	// [CN] 订阅 PIE 开始，启动连接线流动动效
+	// Subscribe to PIE begin to start the connection-flow animation.
 	PieBeginHandle = FEditorDelegates::BeginPIE.AddRaw(this, &FTaskFlowGraphEditor::OnPIEBegan);
 
 	FDetailsViewArgs DetailsViewArgs;
@@ -150,12 +149,12 @@ FName FTaskFlowGraphEditor::GetToolkitFName() const
 
 FText FTaskFlowGraphEditor::GetBaseToolkitName() const
 {
-	return LOCTEXT("TaskFlowGraphEditor_AppLabel", "任务流程编辑器");
+	return LOCTEXT("TaskFlowGraphEditor_AppLabel", "Task Flow Graph Editor");
 }
 
 FString FTaskFlowGraphEditor::GetWorldCentricTabPrefix() const
 {
-	return LOCTEXT("TaskFlowGraphEditor_WorldCentricTabPrefix", "任务流程 ").ToString();
+	return LOCTEXT("TaskFlowGraphEditor_WorldCentricTabPrefix", "Task Flow ").ToString();
 }
 
 FLinearColor FTaskFlowGraphEditor::GetWorldCentricTabColorScale() const
@@ -165,18 +164,18 @@ FLinearColor FTaskFlowGraphEditor::GetWorldCentricTabColorScale() const
 
 void FTaskFlowGraphEditor::RegisterTabSpawners(const TSharedRef<FTabManager>& InTabManager)
 {
-	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_TaskFlowGraphEditor", "任务流程编辑器"));
+	WorkspaceMenuCategory = InTabManager->AddLocalWorkspaceMenuCategory(LOCTEXT("WorkspaceMenu_TaskFlowGraphEditor", "Task Flow Graph Editor"));
 	TSharedRef<FWorkspaceItem> WorkspaceMenuCategoryRef = WorkspaceMenuCategory.ToSharedRef();
 
 	FAssetEditorToolkit::RegisterTabSpawners(InTabManager);
 
 	InTabManager->RegisterTabSpawner(GraphTabId, FOnSpawnTab::CreateSP(this, &FTaskFlowGraphEditor::SpawnTab_Graph))
-		.SetDisplayName(LOCTEXT("GraphTab_Title", "流程图"))
+		.SetDisplayName(LOCTEXT("GraphTab_Title", "Graph"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "GraphEditor.EventGraph_16x"));
 
 	InTabManager->RegisterTabSpawner(DetailsTabId, FOnSpawnTab::CreateSP(this, &FTaskFlowGraphEditor::SpawnTab_Details))
-		.SetDisplayName(LOCTEXT("DetailsTab_Title", "细节"))
+		.SetDisplayName(LOCTEXT("DetailsTab_Title", "Details"))
 		.SetGroup(WorkspaceMenuCategoryRef)
 		.SetIcon(FSlateIcon(FAppStyle::GetAppStyleSetName(), "LevelEditor.Tabs.Details"));
 }
@@ -208,7 +207,7 @@ TSharedRef<SDockTab> FTaskFlowGraphEditor::SpawnTab_Graph(const FSpawnTabArgs& A
 	check(Args.GetTabId() == GraphTabId);
 
 	return SNew(SDockTab)
-		.Label(LOCTEXT("GraphTab_Label", "流程图"))
+		.Label(LOCTEXT("GraphTab_Label", "Graph"))
 		[
 			GraphEditor.ToSharedRef()
 		];
@@ -219,7 +218,7 @@ TSharedRef<SDockTab> FTaskFlowGraphEditor::SpawnTab_Details(const FSpawnTabArgs&
 	check(Args.GetTabId() == DetailsTabId);
 
 	return SNew(SDockTab)
-		.Label(LOCTEXT("DetailsTab_Label", "细节"))
+		.Label(LOCTEXT("DetailsTab_Label", "Details"))
 		[
 			DetailsView.ToSharedRef()
 		];
@@ -228,8 +227,8 @@ TSharedRef<SDockTab> FTaskFlowGraphEditor::SpawnTab_Details(const FSpawnTabArgs&
 FGraphAppearanceInfo FTaskFlowGraphEditor::GetGraphAppearance() const
 {
 	FGraphAppearanceInfo Appearance;
-	Appearance.CornerText = LOCTEXT("TaskFlowGraph_CornerText", "任务流程");
-	Appearance.InstructionText = LOCTEXT("TaskFlowGraph_InstructionText", "右键添加节点，拖动引脚连线：从「完成」连到下一个节点的「进入」");
+	Appearance.CornerText = LOCTEXT("TaskFlowGraph_CornerText", "Task Flow");
+	Appearance.InstructionText = LOCTEXT("TaskFlowGraph_InstructionText", "Right-click to add nodes, then drag pins to connect them: link an output pin to the next node's input pin");
 
 	return Appearance;
 }
@@ -274,8 +273,7 @@ void FTaskFlowGraphEditor::DeleteSelectedNodes()
 		return;
 	}
 
-	// [EN] Collect deletable nodes first to avoid modifying the selection set while iterating.
-	// [CN] 先收集可删除的节点，避免边遍历选择集边修改
+	// Collect deletable nodes first to avoid modifying the selection set while iterating.
 	TArray<UEdGraphNode*> NodesToDelete;
 	const FGraphPanelSelectionSet SelectedNodes = GraphEditor->GetSelectedNodes();
 	for (UObject* Object : SelectedNodes)
@@ -292,7 +290,7 @@ void FTaskFlowGraphEditor::DeleteSelectedNodes()
 		return;
 	}
 
-	const FScopedTransaction Transaction(LOCTEXT("DeleteTaskFlowNodes", "删除任务节点"));
+	const FScopedTransaction Transaction(LOCTEXT("DeleteTaskFlowNodes", "Delete Task Flow Nodes"));
 	Graph->Modify();
 
 	for (UEdGraphNode* Node : NodesToDelete)
@@ -436,8 +434,7 @@ void FTaskFlowGraphEditor::PasteNodes()
 	const FScopedTransaction Transaction(FGenericCommands::Get().Paste->GetDescription());
 	Graph->Modify();
 
-	// [EN] Clear the selection; pasted nodes will be selected again.
-	// [CN] 清空选择，粘贴出的新节点会被重新选中
+	// Clear the selection; pasted nodes will be selected again.
 	GraphEditor->ClearSelectionSet();
 
 	TSet<UEdGraphNode*> PastedNodes;
@@ -447,8 +444,7 @@ void FTaskFlowGraphEditor::PasteNodes()
 		return;
 	}
 
-	// [EN] Compute the average position and translate the whole group to the paste location.
-	// [CN] 计算平均位置，把整组节点平移到粘贴位置
+	// Compute the average position and translate the whole group to the paste location.
 	FVector2f AvgNodePosition(0.f, 0.f);
 	for (UEdGraphNode* Node : PastedNodes)
 	{
@@ -499,14 +495,35 @@ bool FTaskFlowGraphEditor::CanDuplicateNodes() const
 	return CanCopyNodes();
 }
 
+void FTaskFlowGraphEditor::OnNodeDoubleClicked(UEdGraphNode* Node)
+{
+	UTaskFlowNode_SubFlow* SubFlowNode = Cast<UTaskFlowNode_SubFlow>(Node);
+	if (SubFlowNode == nullptr)
+	{
+		return;
+	}
+
+	UTaskFlowAsset* Asset = SubFlowNode->SubFlowAsset.LoadSynchronous();
+	if (Asset == nullptr)
+	{
+		return;
+	}
+
+	// OpenEditorForAsset goes through UAssetDefinition_TaskFlow::OpenAssets, which focuses an
+	// already-open editor instead of opening a duplicate one.
+	if (UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>())
+	{
+		AssetEditorSubsystem->OpenEditorForAsset(Asset);
+	}
+}
+
 void FTaskFlowGraphEditor::OnNodeStateChanged(UTaskFlowNode* Node)
 {
 	if (GraphEditor.IsValid() && Node != nullptr)
 	{
 		GraphEditor->RefreshNode(*Node);
 
-		// [EN] When a node starts executing, kick off the per-frame animation so the flow dots keep moving.
-		// [CN] 节点开始执行时，启动按帧动画，让连线上的流动圆点持续播放
+		// When a node starts executing, kick off the per-frame animation so the flow dots keep moving.
 		if (Node->GetNodeState() == ETaskFlowNodeState::Executing)
 		{
 			StartAnimation();
@@ -516,8 +533,7 @@ void FTaskFlowGraphEditor::OnNodeStateChanged(UTaskFlowNode* Node)
 
 void FTaskFlowGraphEditor::OnPIEBegan(bool bIsSimulating)
 {
-	// [EN] Begin animating connection flows while the game is running.
-	// [CN] 游戏运行时启动连接线流动动效
+	// Begin animating connection flows while the game is running.
 	StartAnimation();
 }
 
@@ -553,8 +569,7 @@ bool FTaskFlowGraphEditor::TickAnimate(float /*DeltaTime*/)
 	{
 		if (SGraphPanel* Panel = GraphEditor->GetGraphPanel())
 		{
-			// [EN] Force a repaint every frame so the flow dots keep animating.
-			// [CN] 每帧强制重绘，使连线流动圆点保持动画
+			// Force a repaint every frame so the flow dots keep animating.
 			Panel->Invalidate(EInvalidateWidget::Paint);
 		}
 	}
@@ -575,8 +590,7 @@ void FTaskFlowGraphEditor::OnPIEEnded(bool bIsSimulating)
 		return;
 	}
 
-	// [EN] After a run stops, reset all nodes to NotExecuted (gray) and stop the flow animation.
-	// [CN] 停止运行后，把所有节点重置为未执行（灰色），并停止连接线动效
+	// After a run stops, reset all nodes to NotExecuted (gray) and stop the flow animation.
 	for (UEdGraphNode* Node : Graph->Nodes)
 	{
 		if (UTaskFlowNode* TaskNode = Cast<UTaskFlowNode>(Node))
@@ -589,8 +603,7 @@ void FTaskFlowGraphEditor::OnPIEEnded(bool bIsSimulating)
 
 	if (SGraphPanel* Panel = GraphEditor->GetGraphPanel())
 	{
-		// [EN] Repaint once so the flow dots disappear immediately.
-		// [CN] 重绘一次，让流动圆点立即消失
+		// Repaint once so the flow dots disappear immediately.
 		Panel->Invalidate(EInvalidateWidget::Paint);
 	}
 }

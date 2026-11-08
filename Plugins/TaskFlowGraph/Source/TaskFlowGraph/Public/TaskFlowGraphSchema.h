@@ -5,12 +5,9 @@
 #include "TaskFlowGraphSchema.generated.h"
 
 /**
- * [EN] Schema for the task flow graph:
- * [CN] 任务流图的 Schema：
- * [EN] - Lists all creatable UTaskFlowNode subclasses in the right-click menu.
- * [CN] - 右键菜单里列出所有可被创建的 UTaskFlowNode 子类
- * [EN] - Enforces connection rules (output -> input, no cycles allowed).
- * [CN] - 约束连线规则（输出 -> 输入，不允许成环）
+ * Schema for the task flow graph:
+ * - Lists all creatable UTaskFlowNode subclasses in the right-click menu.
+ * - Enforces connection rules (output -> input, no cycles allowed).
  */
 UCLASS(MinimalAPI)
 class UTaskFlowGraphSchema : public UEdGraphSchema

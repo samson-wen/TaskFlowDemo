@@ -1,5 +1,6 @@
 #include "Nodes/TaskFlowNode_Start.h"
 
+#include "TaskFlowAsset.h"
 #include "TaskFlowRunner.h"
 #include "TaskFlowTypes.h"
 
@@ -7,8 +8,7 @@
 
 void UTaskFlowNode_Start::AllocateDefaultPins()
 {
-	// [EN] The Start node only has an output pin.
-	// [CN] Start 节点只有输出引脚
+	// The Start node only has an output pin.
 	UEdGraphPin* OutputPin = CreatePin(EGPD_Output, TaskFlowConstants::PinCategory, TaskFlowConstants::PinName_Output);
 	OutputPin->PinFriendlyName = LOCTEXT("TaskFlowNode_Start_OutputPin", "Start");
 }
@@ -31,6 +31,14 @@ bool UTaskFlowNode_Start::IsUniqueNode() const
 
 void UTaskFlowNode_Start::Execute_Implementation(UTaskFlowRunner* Runner)
 {
+	// Broadcast the Started lifecycle event so external listeners bound to
+	// UTaskFlowSystem::OnTaskFlowEvent can observe the beginning of the flow.
+	if (Runner != nullptr)
+	{
+		const FString AssetName = Runner->Asset.Get() != nullptr ? Runner->Asset->GetName() : FString();
+		Runner->EmitEventByName(TaskFlowConstants::EventName_Started, Runner, AssetName);
+	}
+
 	FinishExecution();
 }
 

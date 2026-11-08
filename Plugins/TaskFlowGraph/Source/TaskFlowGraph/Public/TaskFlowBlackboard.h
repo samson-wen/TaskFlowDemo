@@ -4,7 +4,7 @@
 #include "UObject/Object.h"
 #include "TaskFlowBlackboard.generated.h"
 
-/** [EN] Blackboard value type. [CN] 黑板值类型 */
+/** Blackboard value type. */
 UENUM(BlueprintType)
 enum class ETaskFlowBlackboardValueType : uint8
 {
@@ -17,23 +17,20 @@ enum class ETaskFlowBlackboardValueType : uint8
 };
 
 /**
- * [EN] A single entry (property) in the blackboard.
- * [CN] 黑板中的一个条目（属性）。
- * [EN] Used both to define default values in UTaskFlowBlackboard and to hold runtime values.
- * [CN] 既用于在 UTaskFlowBlackboard 里定义默认值，也用于保存运行时值。
- * [EN] Only the field matching ValueType is used.
- * [CN] 根据 ValueType 只使用对应的一个字段。
+ * A single entry (property) in the blackboard.
+ * Used both to define default values in UTaskFlowBlackboard and to hold runtime values.
+ * Only the field matching ValueType is used.
  */
 USTRUCT(BlueprintType)
 struct FTaskFlowBlackboardEntry
 {
 	GENERATED_BODY()
 
-	/** [EN] Property name (unique identifier). [CN] 属性名（唯一标识） */
+	/** Property name (unique identifier). */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Blackboard")
 	FName KeyName = NAME_None;
 
-	/** [EN] Property type. [CN] 属性类型 */
+	/** Property type. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Blackboard")
 	ETaskFlowBlackboardValueType ValueType = ETaskFlowBlackboardValueType::Int;
 
@@ -57,12 +54,9 @@ struct FTaskFlowBlackboardEntry
 };
 
 /**
- * [EN] Task flow blackboard data asset.
- * [CN] 任务流程黑板数据资产。
- * [EN] Similar to a behavior-tree blackboard: developers add several typed property entries here,
- * [EN] then reference it from a UTaskFlowAsset; nodes and actions read/write these values at runtime.
- * [CN] 类似行为树黑板：开发者在这里添加若干带类型的属性条目，
- * [CN] 然后由 UTaskFlowAsset 引用，节点和动作在运行时读写这些值。
+ * Task flow blackboard data asset.
+ * Similar to a behavior-tree blackboard: developers add several typed property entries here,
+ * then reference it from a UTaskFlowAsset; nodes and actions read/write these values at runtime.
  */
 UCLASS(BlueprintType)
 class TASKFLOWGRAPH_API UTaskFlowBlackboard : public UObject
@@ -70,10 +64,10 @@ class TASKFLOWGRAPH_API UTaskFlowBlackboard : public UObject
 	GENERATED_BODY()
 
 public:
-	/** [EN] List of blackboard property entries. [CN] 黑板属性条目列表 */
+	/** List of blackboard property entries. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Blackboard")
 	TArray<FTaskFlowBlackboardEntry> Entries;
 
-	/** [EN] Find an entry by KeyName; returns nullptr if not found. [CN] 按 KeyName 查找条目，找不到返回 nullptr */
+	/** Find an entry by KeyName; returns nullptr if not found. */
 	const FTaskFlowBlackboardEntry* FindEntry(FName Key) const;
 };

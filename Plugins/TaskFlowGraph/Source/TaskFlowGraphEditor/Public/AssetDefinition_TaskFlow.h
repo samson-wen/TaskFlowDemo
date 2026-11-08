@@ -3,7 +3,7 @@
 #include "AssetDefinitionDefault.h"
 #include "AssetDefinition_TaskFlow.generated.h"
 
-/** [EN] Lets the Content Browser recognize UTaskFlowAsset: display name, color, category, and opening the graph editor on double-click. [CN] 让内容浏览器认识 UTaskFlowAsset：显示名、颜色、分类，以及双击打开图编辑器 */
+/** Lets the Content Browser recognize UTaskFlowAsset: display name, color, category, and opening the graph editor on double-click. */
 UCLASS()
 class UAssetDefinition_TaskFlow : public UAssetDefinitionDefault
 {

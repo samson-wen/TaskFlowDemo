@@ -7,8 +7,7 @@
 
 UTaskFlowGraph::UTaskFlowGraph()
 {
-	// [EN] Bind this graph to the TaskFlow schema so the editor knows how to render and connect nodes.
-	// [CN] 将图绑定到 TaskFlow 的 Schema，编辑器据此渲染和连接节点
+	// Bind this graph to the TaskFlow schema so the editor knows how to render and connect nodes.
 	Schema = UTaskFlowGraphSchema::StaticClass();
 }
 
@@ -46,8 +45,7 @@ void UTaskFlowGraph::GetAllNodes(TArray<UTaskFlowNode*>& OutNodes) const
 #if WITH_EDITOR
 void UTaskFlowGraph::CreateDefaultNodes()
 {
-	// [EN] Do nothing if the graph already has nodes; otherwise ask the schema to create default nodes.
-	// [CN] 已有节点则不处理；否则让 Schema 创建默认节点
+	// Do nothing if the graph already has nodes; otherwise ask the schema to create default nodes.
 	if (Nodes.Num() > 0)
 	{
 		return;

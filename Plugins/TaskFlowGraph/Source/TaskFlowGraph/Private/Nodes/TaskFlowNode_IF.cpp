@@ -4,8 +4,7 @@
 #include "Nodes/TaskFlowNode_Condition.h"
 #include "TaskFlowTypes.h"
 
-// [EN] Implementation of the conditional branch node. It has In, Success and Failed pins; on execution it follows Success if all conditions pass, otherwise Failed.
-// [CN] 条件分支节点的实现。它拥有 In、Success、Failed 三个引脚；执行时若所有条件满足则走 Success，否则走 Failed。
+// Implementation of the conditional branch node. It has In, Success and Failed pins; on execution it follows Success if all conditions pass, otherwise Failed.
 #define LOCTEXT_NAMESPACE "TaskFlowNode_IF"
 
 void UTaskFlowNode_IF::AllocateDefaultPins()

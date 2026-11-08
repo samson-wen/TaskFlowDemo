@@ -19,10 +19,8 @@ DEFINE_LOG_CATEGORY(LogTaskFlow);
 namespace
 {
 	/**
-	 * [EN] The single formatter for every node lifecycle log line, so Begin and End always share the same layout.
-	 * [CN] 节点生命周期日志的唯一格式化入口：Begin / End 共用同一套字段与顺序，保证格式统一。
-	 * [EN] Format: [TaskFlow] Flow=<Asset> | Event=<Begin|End> | Node=<Name> | Class=<Class> | Detail=<...>
-	 * [CN] 格式：[TaskFlow] Flow=<流程资产> | Event=<Begin|End> | Node=<节点名> | Class=<类名> | Detail=<附加信息>
+	 * The single formatter for every node lifecycle log line, so Begin and End always share the same layout.
+	 * Format: [TaskFlow] Flow=<Asset> | Event=<Begin|End> | Node=<Name> | Class=<Class> | Detail=<...>
 	 */
 	void LogNodeLifecycle(const UTaskFlowRunner* Runner, const UTaskFlowNode* Node, const TCHAR* Event, const TCHAR* Detail)
 	{
@@ -70,21 +68,18 @@ void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset, AActor* InContext)
 		return;
 	}
 
-	// [EN] Distinguish by the context type passed in: PlayerState = personal task, GameState = global task.
-	// [CN] 根据传入的上下文类型区分：PlayerState = 个人任务，GameState = 全局任务
+	// Distinguish by the context type passed in: PlayerState = personal task, GameState = global task.
 	Context = InContext;
 	PlayerStateOwner = Cast<APlayerState>(InContext);
 	GameStateOwner = Cast<AGameStateBase>(InContext);
 
-	// [EN] Validate that the context matches the asset's task type (editor popup).
-	// [CN] 校验上下文与资产任务类型是否一致（编辑器下弹窗提示）
+	// Validate that the context matches the asset's task type (editor popup).
 	ValidateContextType(InAsset, InContext);
 
 	Asset = InAsset;
 	bRunning = true;
 
-	// [EN] Initialize the runtime blackboard from the asset blackboard.
-	// [CN] 从资产黑板初始化运行时黑板
+	// Initialize the runtime blackboard from the asset blackboard.
 	BlackboardValues.Empty();
 	if (Asset->Blackboard.Get() != nullptr)
 	{
@@ -94,8 +89,7 @@ void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset, AActor* InContext)
 		}
 	}
 
-	// [EN] Reset all node states to NotExecuted.
-	// [CN] 重置所有节点状态为未执行
+	// Reset all node states to NotExecuted.
 	TArray<UTaskFlowNode*> AllNodes;
 	InAsset->GetAllNodes(AllNodes);
 	for (UTaskFlowNode* Node : AllNodes)
@@ -111,10 +105,8 @@ void UTaskFlowRunner::Start(UTaskFlowAsset* InAsset, AActor* InContext)
 		PendingNodes.Add(StartNode);
 	}
 
-	// [EN] Notify the outside world that the flow has started (before Advance so it always precedes the Finished event, even for synchronous flows).
-	// [CN] 向外广播“流程已开始”事件（在 Advance 之前，确保即便同步流程也先于“结束”事件发出）
-	EmitEventByName(TaskFlowConstants::EventName_Started, this, Asset.Get() != nullptr ? Asset->GetName() : FString());
-
+	// The Start node broadcasts the Started event when it executes. Doing it here as well
+	// would produce a duplicate event for every flow.
 	Advance();
 }
 
@@ -125,13 +117,12 @@ void UTaskFlowRunner::Stop()
 		return;
 	}
 
-	// [CN] 保留 ActiveNodes，交给 FinishFlow 统一为这些被中断的节点补 End 日志。
+	// Keep ActiveNodes so FinishFlow can emit the matching End logs for these aborted nodes.
 	PendingNodes.Empty();
 
 	ClearAdvanceTimer();
 
-	// [EN] Manual stop: reset all nodes to NotExecuted (gray).
-	// [CN] 手动停止：把所有节点重置为未执行（灰色）
+	// Manual stop: reset all nodes to NotExecuted (gray).
 	if (Asset.Get() != nullptr)
 	{
 		TArray<UTaskFlowNode*> AllNodes;
@@ -184,7 +175,7 @@ void UTaskFlowRunner::NotifyNodeFinished(UTaskFlowNode* Node)
 		return;
 	}
 
-	// [CN] 只接受当前活跃分支的完成回调；流程已结束或迟到的回调直接忽略。
+	// Only accept completion callbacks from the current active branch; late callbacks after the flow has ended are ignored.
 	const int32 ActiveIndex = ActiveNodes.IndexOfByPredicate([Node](const TObjectPtr<UTaskFlowNode>& Ptr)
 	{
 		return Ptr.Get() == Node;
@@ -194,12 +185,13 @@ void UTaskFlowRunner::NotifyNodeFinished(UTaskFlowNode* Node)
 		return;
 	}
 
-	// [CN] 仅移除完成的这一条分支，其它并行分支继续执行。
 	ActiveNodes.RemoveAt(ActiveIndex, 1, EAllowShrinking::No);
 
-	// [EN] Mark the node as succeeded.
-	// [CN] 标记节点执行成功
-	Node->SetNodeState(ETaskFlowNodeState::Succeeded);
+	// Merge nodes stay Executing (yellow) until their condition is met, e.g. AND waiting for all inputs.
+	if (Node->ShouldMarkSucceededOnFinish())
+	{
+		Node->SetNodeState(ETaskFlowNodeState::Succeeded);
+	}
 	LogNodeLifecycle(this, Node, TEXT("End"), TEXT("Finished"));
 
 	TArray<UTaskFlowNode*> NextNodes;
@@ -224,7 +216,7 @@ void UTaskFlowRunner::NotifyNodeFinished(UTaskFlowNode* Node)
 
 void UTaskFlowRunner::EmitEvent(const FTaskFlowEvent& Event)
 {
-	// [CN] 通过系统以 OnTaskFlowEvent 委托广播，所有订阅者（蓝图 / C++）都能收到。
+	// Broadcast through the system's OnTaskFlowEvent delegate so all subscribers (Blueprint / C++) receive it.
 	UTaskFlowSystem* System = GetTaskFlowSystem();
 	if (System != nullptr)
 	{
@@ -251,8 +243,7 @@ void UTaskFlowRunner::Advance()
 {
 	if (bAdvancing)
 	{
-		// [EN] Already advancing (a synchronous node called FinishExecution); let the outer loop continue.
-		// [CN] 已经在推进中（同步节点里调用了 FinishExecution），交给外层循环继续
+		// Already advancing (a synchronous node called FinishExecution); let the outer loop continue.
 		return;
 	}
 
@@ -260,29 +251,31 @@ void UTaskFlowRunner::Advance()
 
 	while (bRunning)
 	{
-		// [CN] 没有待启动节点时：仍有活跃分支就等它们各自完成回调；活跃集合也空了才整条流程结束。
+		// When there are no pending nodes: if branches are still active, wait for their completion callbacks; the flow ends only once the active set is empty too.
 		if (PendingNodes.Num() == 0)
 		{
 			if (ActiveNodes.Num() == 0)
 			{
+				// All branches finished without an explicit End node: still a normal completion.
+				EmitEventByName(TaskFlowConstants::EventName_Completed, this, Asset.Get() != nullptr ? Asset->GetName() : FString());
 				FinishFlow();
 			}
 			break;
 		}
 
-		// [CN] 把当前全部待启动节点取成一个批次，一齐开始执行。
-		//      同步节点在 BeginExecution 内完成时会把后继加入新的 PendingNodes，由下一轮循环作为新批次处理。
+		// Take all currently pending nodes as one batch and start them together.
+		//      Synchronous nodes add their successors to PendingNodes inside BeginExecution; the next loop iteration handles them as a new batch.
 		const TArray<TObjectPtr<UTaskFlowNode>> Batch = MoveTemp(PendingNodes);
 
-		// [CN] 先整批判定 End：只要批次里出现 End，就代表整个流程结束。
-		//      放在启动任何节点之前判定，行为不受 End 在批次中的先后顺序影响。
+		// Check the whole batch for End nodes first: the presence of an End node ends the entire flow.
+		//      This check runs before any node is started, so the End node's position within the batch does not matter.
 		bool bBatchHasEndNode = false;
 		for (const TObjectPtr<UTaskFlowNode>& NodePtr : Batch)
 		{
 			UTaskFlowNode* Node = NodePtr.Get();
 			if (Node != nullptr && Node->IsA<UTaskFlowNode_End>())
 			{
-				// [CN] End 节点不走 BeginExecution，在这里补上成对的生命周期日志。
+				// End nodes do not go through BeginExecution; emit the matching lifecycle log entries here.
 				LogNodeLifecycle(this, Node, TEXT("Begin"), TEXT("EndNode"));
 				Node->SetNodeState(ETaskFlowNodeState::Succeeded);
 				LogNodeLifecycle(this, Node, TEXT("End"), TEXT("FlowEnded"));
@@ -292,8 +285,12 @@ void UTaskFlowRunner::Advance()
 
 		if (bBatchHasEndNode)
 		{
-			// [CN] 终止整个流程：本批其它节点一律不启动；FinishFlow 会清空活跃 / 待执行集合，
-			//      并通过 NotifyNodesFlowEnded 让图内所有节点解绑事件、中止 Actions、断开 Runner。
+			// The End node has been reached: broadcast a completion event before shutting the flow down.
+			// Stop() skips this path, so external listeners can distinguish completion from an aborted flow.
+			EmitEventByName(TaskFlowConstants::EventName_Completed, this, Asset.Get() != nullptr ? Asset->GetName() : FString());
+
+			// Terminate the whole flow: no other node in this batch is started; FinishFlow clears the active / pending sets
+			//      and NotifyNodesFlowEnded makes every node in the graph unbind events, abort Actions and detach its Runner.
 			FinishFlow();
 			break;
 		}
@@ -306,7 +303,7 @@ void UTaskFlowRunner::Advance()
 				continue;
 			}
 
-			// [CN] 多条分支可能把同一节点排进同一批次，避免重复启动。
+			// Multiple branches may schedule the same node into one batch; avoid starting it twice.
 			if (ActiveNodes.ContainsByPredicate([Node](const TObjectPtr<UTaskFlowNode>& Ptr) { return Ptr.Get() == Node; }))
 			{
 				continue;
@@ -316,14 +313,13 @@ void UTaskFlowRunner::Advance()
 			Node->SetNodeState(ETaskFlowNodeState::Executing);
 			LogNodeLifecycle(this, Node, TEXT("Begin"), TEXT("Started"));
 			Node->BeginExecution(this);
-			// [CN] 同步节点会在此调用 FinishExecution -> NotifyNodeFinished，把自己移出 ActiveNodes；
-			//      其内部调用的 Advance() 因 bAdvancing 直接返回，由本 while 循环继续处理新批次。
+			// Synchronous nodes call FinishExecution -> NotifyNodeFinished here and remove themselves from ActiveNodes;
+			//      their inner Advance() returns immediately because bAdvancing is set, so this while loop continues with the next batch.
 		}
 
 		if (StepDelaySeconds > 0.f)
 		{
-			// [EN] Step mode: exit the loop after handling one parallel batch; a timer schedules the next batch.
-			// [CN] 步进模式：一个并行批次处理完就退出循环，由定时器安排下一批次
+			// Step mode: exit the loop after handling one parallel batch; a timer schedules the next batch.
 			break;
 		}
 	}
@@ -343,26 +339,24 @@ void UTaskFlowRunner::FinishFlow()
 
 	ClearAdvanceTimer();
 
-	// [CN] 流程结束（到达 End / Stop）时，仍留在活跃集合里的节点没有走 NotifyNodeFinished，
-	//      在这里统一补上成对的 End 日志，再清空集合。
+	// When the flow ends (End / Stop), nodes still in the active set did not go through NotifyNodeFinished,
+	//      so emit their matching End logs here before clearing the set.
 	for (const TObjectPtr<UTaskFlowNode>& NodePtr : ActiveNodes)
 	{
 		LogNodeLifecycle(this, NodePtr.Get(), TEXT("End"), TEXT("Aborted"));
 	}
 	ActiveNodes.Empty();
 
-	// [CN] 流程整体结束：通知资产内所有节点终止未完成的异步工作（解绑全局事件、中止 Actions），
-	//      保证到达 End / Stop 之后残留的 Objective/Actions 不会再被事件驱动或继续推进。
+	// Whole-flow completion: notify every node in the asset to abort pending async work (unbind global events, abort Actions)
+	//      so leftover Objectives / Actions no longer react to events or advance after End / Stop.
 	NotifyNodesFlowEnded();
 
 	OnFinished.Broadcast(this);
 
-	// [EN] Notify the outside world that the flow has finished (completed or aborted).
-	// [CN] 向外广播“流程已结束”事件（完成或中断都会触发）
+	// Notify the outside world that the flow has finished (completed or aborted).
 	EmitEventByName(TaskFlowConstants::EventName_Finished, this, Asset.Get() != nullptr ? Asset->GetName() : FString());
 
-	// [EN] No longer keep the object alive via root; it still lives if external references (e.g. Blueprint variables) hold it.
-	// [CN] 流程结束后不再持有，外部（蓝图变量等）仍持有引用时对象继续存活
+	// No longer keep the object alive via root; it still lives if external references (e.g. Blueprint variables) hold it.
 	RemoveFromRoot();
 }
 
@@ -382,8 +376,8 @@ void UTaskFlowRunner::NotifyNodesFlowEnded()
 			continue;
 		}
 
-		// [CN] 被 End / Stop 打断、仍停留在「执行中」的节点回到「未执行」：
-		//      它们并未完成，不应在编辑器里一直显示黄色（End 日志由 FinishFlow 统一输出）。
+		// Nodes interrupted by End / Stop while still Executing return to NotExecuted:
+		//      they did not complete and should not stay yellow in the editor (FinishFlow emits the End logs).
 		if (Node->GetNodeState() == ETaskFlowNodeState::Executing)
 		{
 			Node->SetNodeState(ETaskFlowNodeState::NotExecuted);
@@ -398,8 +392,7 @@ void UTaskFlowRunner::ScheduleAdvance()
 	UWorld* World = GetTaskFlowWorld();
 	if (World == nullptr)
 	{
-		// [EN] No World available; fall back to advancing immediately.
-		// [CN] 没有 World 时退化为立即推进
+		// No World available; fall back to advancing immediately.
 		Advance();
 		return;
 	}
@@ -579,11 +572,11 @@ void UTaskFlowRunner::ValidateContextType(UTaskFlowAsset* InAsset, AActor* InCon
 
 	if (TaskType == ETaskFlowTaskType::Personal && Cast<AGameStateBase>(InContext) != nullptr)
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("TaskFlowRunner", "TaskTypeMismatch_Personal", "该任务流程设置为「个人」任务，但运行时传入的是 GameState，参数与设置不一致。"));
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("TaskFlowRunner", "TaskTypeMismatch_Personal", "This task flow is configured as Personal, but a GameState was passed in at runtime. The parameters do not match the configuration."));
 	}
 	else if (TaskType == ETaskFlowTaskType::World && Cast<APlayerState>(InContext) != nullptr)
 	{
-		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("TaskFlowRunner", "TaskTypeMismatch_World", "该任务流程设置为「世界」任务，但运行时传入的是 PlayerState，参数与设置不一致。"));
+		FMessageDialog::Open(EAppMsgType::Ok, NSLOCTEXT("TaskFlowRunner", "TaskTypeMismatch_World", "This task flow is configured as World, but a PlayerState was passed in at runtime. The parameters do not match the configuration."));
 	}
 #endif
 }

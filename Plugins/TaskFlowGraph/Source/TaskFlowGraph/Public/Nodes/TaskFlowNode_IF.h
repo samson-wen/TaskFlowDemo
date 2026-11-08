@@ -9,10 +9,8 @@ class UTaskFlowNode_Condition;
 class UTaskFlowRunner;
 
 /**
- * [EN] Conditional branch node.
- * [CN] 条件分支节点。
- * [EN] On execution it evaluates all conditions in the Conditions list in order: if all are satisfied it follows the "Success" output, otherwise the "Failed" output.
- * [CN] 执行时依次评估 Conditions 列表里的所有条件：全部满足走「成功」输出，否则走「失败」输出。
+ * Conditional branch node.
+ * On execution it evaluates all conditions in the Conditions list in order: if all are satisfied it follows the "Success" output, otherwise the "Failed" output.
  */
 UCLASS(meta = (DisplayName = "Condition Branch", TaskFlowCategory = "Flow"))
 class TASKFLOWGRAPH_API UTaskFlowNode_IF : public UTaskFlowNode
@@ -30,20 +28,20 @@ public:
 
 	virtual void GetNextNodes(TArray<UTaskFlowNode*>& OutNextNodes) const override;
 
-	/** [EN] Condition list; all satisfied -> Success, otherwise -> Failed. [CN] 条件列表，全部满足走 Success，否则走 Failed */
+	/** Condition list; all satisfied -> Success, otherwise -> Failed. */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "IF", Instanced)
 	TArray<TObjectPtr<UTaskFlowNode_Condition>> Conditions;
 
-	/** [EN] Success output pin. [CN] Success 输出引脚 */
+	/** Success output pin. */
 	UEdGraphPin* GetSuccessPin() const;
 
-	/** [EN] Failed output pin. [CN] Failed 输出引脚 */
+	/** Failed output pin. */
 	UEdGraphPin* GetFailedPin() const;
 
 private:
-	/** [EN] Evaluate all conditions in order; returns true only if all are satisfied. [CN] 依次执行所有条件，全部满足返回 true */
+	/** Evaluate all conditions in order; returns true only if all are satisfied. */
 	bool EvaluateConditions();
 
-	/** [EN] The most recent execution result (decides which output to follow). [CN] 最近一次执行结果（决定走哪个输出） */
+	/** The most recent execution result (decides which output to follow). */
 	bool bLastResult = false;
 };

@@ -15,7 +15,7 @@
 
 namespace
 {
-	/** [EN] Find a loaded class by its short name. [CN] 按类短名查找已加载的类 */
+	/** Find a loaded class by its short name. */
 	UClass* FindClassByName(const FString& ClassName)
 	{
 		UClass* Class = FindObject<UClass>(nullptr, *ClassName);
@@ -26,7 +26,7 @@ namespace
 		return Class;
 	}
 
-	/** [EN] Whether the property should be skipped (Transient or framework base-class fields). [CN] 是否应跳过该属性（Transient 或框架基类字段） */
+	/** Whether the property should be skipped (Transient or framework base-class fields). */
 	bool ShouldSkipProperty(const FProperty* Prop)
 	{
 		if (Prop->HasAnyPropertyFlags(CPF_Transient))
@@ -53,7 +53,7 @@ namespace
 
 			if (const FObjectProperty* InnerObj = CastField<FObjectProperty>(Inner))
 			{
-				// [EN] Instanced object array (e.g. Actions / Conditions). [CN] Instanced 对象数组（如 Actions / Conditions）
+				// Instanced object array (e.g. Actions / Conditions).
 				for (int32 i = 0; i < Helper.Num(); ++i)
 				{
 					if (UObject* SubObj = InnerObj->GetObjectPropertyValue(Helper.GetRawPtr(i)))
@@ -69,7 +69,7 @@ namespace
 			}
 			else if (const FStructProperty* InnerStruct = CastField<FStructProperty>(Inner))
 			{
-				// [EN] Struct array (e.g. Checks). [CN] Struct 数组（如 Checks）
+				// Struct array (e.g. Checks).
 				for (int32 i = 0; i < Helper.Num(); ++i)
 				{
 					TSharedRef<FJsonObject> SubJson = MakeShareable(new FJsonObject());
@@ -378,8 +378,7 @@ bool TaskFlowGraphSerializer::ImportGraphFromJson(UTaskFlowGraph* Graph, const F
 		return false;
 	}
 
-	// [EN] Clear existing nodes.
-	// [CN] 清空现有节点
+	// Clear existing nodes.
 	TArray<UEdGraphNode*> NodesToDestroy;
 	for (UEdGraphNode* Node : Graph->Nodes)
 	{
@@ -394,8 +393,7 @@ bool TaskFlowGraphSerializer::ImportGraphFromJson(UTaskFlowGraph* Graph, const F
 	}
 	Graph->Nodes.Reset();
 
-	// [EN] First pass: create nodes.
-	// [CN] 第一遍：创建节点
+	// First pass: create nodes.
 	TMap<int32, UEdGraphNode*> IdToNode;
 	const TArray<TSharedPtr<FJsonValue>>* NodesArr = nullptr;
 	if (Root->TryGetArrayField(TEXT("nodes"), NodesArr))
@@ -436,8 +434,7 @@ bool TaskFlowGraphSerializer::ImportGraphFromJson(UTaskFlowGraph* Graph, const F
 		}
 	}
 
-	// [EN] Second pass: build connections.
-	// [CN] 第二遍：建立连接
+	// Second pass: build connections.
 	const TArray<TSharedPtr<FJsonValue>>* LinksArr = nullptr;
 	if (Root->TryGetArrayField(TEXT("links"), LinksArr))
 	{

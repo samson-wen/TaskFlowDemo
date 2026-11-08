@@ -4,8 +4,7 @@
 #include "Nodes/TaskFlowNode_Objective.h"
 #include "TaskFlowRunner.h"
 
-// [EN] Action that emits an outbound event to the outside world when executed.
-// [CN] 执行时向外界发出一条出站事件的动作。
+// Action that emits an outbound event to the outside world when executed.
 #define LOCTEXT_NAMESPACE "TaskFlowAction_SendEvent"
 
 UTaskFlowAction_SendEvent::UTaskFlowAction_SendEvent()
@@ -19,8 +18,7 @@ FText UTaskFlowAction_SendEvent::GetActionName() const
 
 void UTaskFlowAction_SendEvent::Execute_Implementation(UTaskFlowNode_Objective* OwnerNode)
 {
-	// [EN] Route the event through the owning node's Runner so it reaches the external world.
-	// [CN] 通过所属节点的 Runner 把事件转发到外界
+	// Route the event through the owning node's Runner so it reaches the external world.
 	if (OwnerNode != nullptr)
 	{
 		if (UTaskFlowRunner* Runner = OwnerNode->GetRunner())

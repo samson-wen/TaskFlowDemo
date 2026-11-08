@@ -14,8 +14,7 @@ FText UTaskFlowAction::GetActionName() const
 
 void UTaskFlowAction::Execute_Implementation(UTaskFlowNode_Objective* OwnerNode)
 {
-	// [EN] Default implementation: finish synchronously.
-	// [CN] 默认实现：同步完成
+	// Default implementation: finish synchronously.
 	Finish();
 }
 
@@ -36,7 +35,7 @@ void UTaskFlowAction::Finish()
 
 void UTaskFlowAction::OnFlowEnded()
 {
-	// [CN] 标记为已完成：之后即便有迟到的事件回调调用 Finish()，也会因 bFinished 直接返回，不再推进流程。
+	// Mark this action finished: a late event callback calling Finish() will now return early because of bFinished and cannot advance the flow.
 	bFinished = true;
 }
 
@@ -158,7 +157,7 @@ AGameStateBase* UTaskFlowAction::GetGameStateOwner() const
 
 UTaskFlowSystem* UTaskFlowAction::GetTaskFlowSystem() const
 {
-	// [CN] 优先经由所属目标节点当前执行的 Runner 取得系统（最可靠）。
+	// Prefer the system resolved through the owning Objective's current Runner (most reliable).
 	if (UTaskFlowNode_Objective* Owner = OwningObjective.Get())
 	{
 		if (UTaskFlowRunner* Runner = Owner->GetRunner())
@@ -170,12 +169,11 @@ UTaskFlowSystem* UTaskFlowAction::GetTaskFlowSystem() const
 		}
 	}
 
-	// [CN] 回退：通过动作对象的 World 上下文直接取世界子系统。
+	// Fallback: resolve the world subsystem through this object's World context.
 	return UTaskFlowSystem::Get(this);
 }
 
 void UTaskFlowAction::ReceiveTaskFlowEvent(const FTaskFlowEvent& Event)
 {
-	// [EN] No handling by default; override in subclasses.
-	// [CN] 默认不处理，子类重写
+	// No handling by default; override in subclasses.
 }
