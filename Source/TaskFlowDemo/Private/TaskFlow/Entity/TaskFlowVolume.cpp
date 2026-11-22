@@ -4,6 +4,7 @@
 
 #include "Components/BrushComponent.h"
 #include "Components/ArrowComponent.h"
+#include "Components/WidgetComponent.h"
 #include "Components/PrimitiveComponent.h"
 #include "GameFramework/Character.h"
 
@@ -84,7 +85,7 @@ void ATaskFlowVolume::HandleActorEndOverlap(AActor* OverlappedActor, AActor* Oth
 
 void ATaskFlowVolume::ShowArrow()
 {
-	UArrowComponent* ArrowComp = this->GetComponentByClass<UArrowComponent>();
+	UWidgetComponent* ArrowComp = this->GetComponentByClass<UWidgetComponent>();
 	if (ArrowComp != nullptr)
 	{
 		ArrowComp->SetHiddenInGame(false);
@@ -93,7 +94,7 @@ void ATaskFlowVolume::ShowArrow()
 
 void ATaskFlowVolume::HideArrow()
 {
-	UArrowComponent* ArrowComp = this->GetComponentByClass<UArrowComponent>();
+	UWidgetComponent* ArrowComp = this->GetComponentByClass<UWidgetComponent>();
 	if (ArrowComp != nullptr)
 	{
 		ArrowComp->SetHiddenInGame(true);

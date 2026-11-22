@@ -113,6 +113,10 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	AActor* GetContext() const { return Context.Get(); }
 
+	/** Override the flow context at runtime (e.g. expose the Actor that triggered an event to Actions). */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
+	void SetContext(AActor* InContext);
+
 	/** Get the PlayerState that owns the personal task. */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow")
 	APlayerState* GetPlayerStateOwner() const { return PlayerStateOwner.Get(); }

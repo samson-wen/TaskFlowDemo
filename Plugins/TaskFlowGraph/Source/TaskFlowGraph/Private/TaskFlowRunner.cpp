@@ -162,6 +162,11 @@ void UTaskFlowRunner::GetActiveNodes(TArray<UTaskFlowNode*>& OutNodes) const
 	}
 }
 
+void UTaskFlowRunner::SetContext(AActor* InContext)
+{
+	Context = InContext;
+}
+
 UWorld* UTaskFlowRunner::GetTaskFlowWorld() const
 {
 	UWorld* World = WorldPtr.Get();

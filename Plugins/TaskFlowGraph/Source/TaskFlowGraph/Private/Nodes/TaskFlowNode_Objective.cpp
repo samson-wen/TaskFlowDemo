@@ -153,6 +153,21 @@ void UTaskFlowNode_Objective::Execute_Implementation(UTaskFlowRunner* Runner)
 			*GetClass()->GetName(), TEXT("Listening disabled"));
 	}
 
+	// Deferring subclasses (e.g. CharacterBeginPlay) start Actions only after their event arrives,
+	// so Actions can read the event-source Actor from the context.
+	if (!ShouldDeferActionsUntilEvent())
+	{
+		ExecuteNextAction();
+	}
+}
+
+bool UTaskFlowNode_Objective::ShouldDeferActionsUntilEvent() const
+{
+	return false;
+}
+
+void UTaskFlowNode_Objective::StartActions()
+{
 	ExecuteNextAction();
 }
 

@@ -8,6 +8,8 @@
 #include "Serialization/JsonSerializer.h"
 #include "Serialization/JsonWriter.h"
 #include "UObject/Field.h"
+#include "UObject/SoftObjectPath.h"
+#include "UObject/SoftObjectPtr.h"
 #include "UObject/UnrealType.h"
 
 #include "Nodes/TaskFlowNode.h"
@@ -77,6 +79,15 @@ namespace
 					Arr.Add(MakeShareable(new FJsonValueObject(SubJson)));
 				}
 			}
+			else if (const FSoftObjectProperty* InnerSoft = CastField<FSoftObjectProperty>(Inner))
+			{
+				// Soft reference array (TSoftObjectPtr / TSoftClassPtr inside a TArray).
+				for (int32 i = 0; i < Helper.Num(); ++i)
+				{
+					const FSoftObjectPtr& SoftRef = InnerSoft->GetPropertyValue(Helper.GetRawPtr(i));
+					Arr.Add(MakeShareable(new FJsonValueString(SoftRef.ToSoftObjectPath().ToString())));
+				}
+			}
 
 			Json->SetArrayField(Name, Arr);
 			return;
@@ -121,6 +132,13 @@ namespace
 		else if (const FTextProperty* TextProp = CastField<FTextProperty>(Prop))
 		{
 			Json->SetStringField(Name, TextProp->GetPropertyValue(ValuePtr).ToString());
+		}
+		else if (const FSoftObjectProperty* SoftProp = CastField<FSoftObjectProperty>(Prop))
+		{
+			// Covers TSoftObjectPtr and TSoftClassPtr (FSoftClassProperty derives from FSoftObjectProperty).
+			// Store the asset path, e.g. "/Game/TaskFlows/TF_Boss.TF_Boss" or a level Actor subobject path.
+			const FSoftObjectPtr& SoftRef = SoftProp->GetPropertyValue(ValuePtr);
+			Json->SetStringField(Name, SoftRef.ToSoftObjectPath().ToString());
 		}
 		else if (const FEnumProperty* EnumProp = CastField<FEnumProperty>(Prop))
 		{
@@ -198,6 +216,19 @@ namespace
 					ImportStructProperties(InnerStruct->Struct, Helper.GetRawPtr(Index), Outer, SubJson);
 				}
 			}
+			else if (FSoftObjectProperty* InnerSoft = CastField<FSoftObjectProperty>(Inner))
+			{
+				for (const TSharedPtr<FJsonValue>& Elem : *Arr)
+				{
+					if (!Elem.IsValid())
+					{
+						continue;
+					}
+					const int32 Index = Helper.AddValue();
+					const FSoftObjectPath Path(Elem->AsString());
+					InnerSoft->SetPropertyValue(Helper.GetRawPtr(Index), FSoftObjectPtr(Path));
+				}
+			}
 			return;
 		}
 
@@ -247,6 +278,13 @@ namespace
 		else if (FTextProperty* TextProp = CastField<FTextProperty>(Prop))
 		{
 			TextProp->SetPropertyValue(ValuePtr, FText::FromString(Value->AsString()));
+		}
+		else if (FSoftObjectProperty* SoftProp = CastField<FSoftObjectProperty>(Prop))
+		{
+			// An empty string clears the reference. Json files exported before soft references were
+			// supported have no field at all; ImportStructProperties then leaves the default (null).
+			const FSoftObjectPath Path(Value->AsString());
+			SoftProp->SetPropertyValue(ValuePtr, FSoftObjectPtr(Path));
 		}
 		else if (FEnumProperty* EnumProp = CastField<FEnumProperty>(Prop))
 		{

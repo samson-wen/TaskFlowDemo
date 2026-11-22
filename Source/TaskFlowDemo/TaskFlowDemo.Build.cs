@@ -19,6 +19,7 @@ public class TaskFlowDemo : ModuleRules
 			"GameplayStateTreeModule",
 			"UMG",
 			"Slate",
+			"NavigationSystem",
 			"TaskFlowGraph"
 		});
 

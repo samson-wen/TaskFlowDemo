@@ -16,6 +16,9 @@ namespace GameTaskFlowEvents
 
 	const FName EVENT_ENEMY_DEATH(TEXT("EVENT_ENEMY_DEATH"));
 
+	/** Broadcast when a player accepts a task (usually from the task UI / task component). */
+	const FName EVENT_TASK_ACCEPTED(TEXT("EVENT_TASK_ACCEPTED"));
+
 }
 
 /**
@@ -50,6 +53,21 @@ public:
 	/** Task-flow identifier of the dead enemy; 0 means unassigned. */
 	UPROPERTY(BlueprintReadWrite, Category = "TaskFlow")
 	int64 AIID = 0;
+};
+
+/**
+ * Payload for EVENT_TASK_ACCEPTED, stored in FTaskFlowEvent::EventData.
+ * TaskID matches FGameTask::TaskID in the task DataTable.
+ */
+USTRUCT(BlueprintType)
+struct FTaskFlowAcceptTaskEvent
+{
+	GENERATED_BODY()
+
+public:
+	/** Identifier of the accepted task; 0 means "any task". */
+	UPROPERTY(BlueprintReadWrite, Category = "TaskFlow")
+	int32 TaskID = 0;
 };
 
 /**

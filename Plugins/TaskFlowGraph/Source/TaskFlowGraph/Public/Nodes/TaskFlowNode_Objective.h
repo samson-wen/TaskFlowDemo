@@ -107,6 +107,17 @@ protected:
 	 */
 	virtual bool ShouldListenToTaskFlowEvents() const;
 
+	/**
+	 * Whether Actions must wait for an external event instead of starting inside Execute.
+	 * Base returns false (all existing Objectives keep their behavior). Subclasses that need an
+	 * event-source Actor in the context override to true and call StartActions() from
+	 * OnTaskFlowEventReceived once the event has arrived.
+	 */
+	virtual bool ShouldDeferActionsUntilEvent() const;
+
+	/** Start the Actions list; for subclasses that defer Actions via ShouldDeferActionsUntilEvent(). */
+	void StartActions();
+
 private:
 	/** Bind HandleTaskFlowEvent to the given System, using the cached System for later unbinding. */
 	void BindToTaskFlowEvent(UTaskFlowSystem* System);

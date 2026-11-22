@@ -18,4 +18,12 @@ public:
 	 */
 	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Event")
 	static void BroadcastKillTargetTaskFlow(ACharacter* InKillerCharacter, ACharacter* InDeathCharacter);
+
+	/**
+	 * Broadcast EVENT_TASK_ACCEPTED so AcceptTask Objectives can react to a player accepting a task.
+	 * Call this from the task UI / task component after the task has been added to the player's list.
+	 * InAcceptor is optional and is forwarded as FTaskFlowEvent::Sender (e.g. the PlayerState).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "TaskFlow|Event", meta = (WorldContext = "WorldContextObject", DefaultToSelf = "WorldContextObject"))
+	static void BroadcastTaskAccepted(const UObject* WorldContextObject, int32 TaskID, UObject* InAcceptor = nullptr);
 };

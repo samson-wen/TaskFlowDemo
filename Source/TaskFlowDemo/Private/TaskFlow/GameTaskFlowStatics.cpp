@@ -3,6 +3,7 @@
 #include "TaskFlow/GameTaskFlowStatics.h"
 
 #include "Variant_Combat/AI/CombatEnemy.h"
+#include "Engine/World.h"
 #include "TaskFlowEvent.h"
 #include "TaskFlowSystem.h"
 #include "TaskFlow/GameTaskFlowTypes.h"
@@ -45,4 +46,33 @@ void UGameTaskFlowStatics::BroadcastKillTargetTaskFlow(ACharacter* InKillerChara
 	LogTaskFlowLifecycle(
 		TEXT("<None>"), TEXT("KillBroadcast"), GetNameSafe(InDeathCharacter),
 		*InDeathCharacter->GetClass()->GetName(), *Detail);
+}
+
+void UGameTaskFlowStatics::BroadcastTaskAccepted(const UObject* WorldContextObject, int32 TaskID, UObject* InAcceptor)
+{
+	UWorld* World = IsValid(WorldContextObject) ? WorldContextObject->GetWorld() : nullptr;
+	if (World == nullptr)
+	{
+		return;
+	}
+
+	UTaskFlowSystem* TaskFlowSystem = World->GetSubsystem<UTaskFlowSystem>();
+	if (TaskFlowSystem == nullptr)
+	{
+		return;
+	}
+
+	FTaskFlowEvent TaskFlowEvt;
+	TaskFlowEvt.EventName = GameTaskFlowEvents::EVENT_TASK_ACCEPTED;
+	TaskFlowEvt.Sender = InAcceptor;
+
+	FTaskFlowAcceptTaskEvent& AcceptEvt = TaskFlowEvt.EventData.InitializeAs<FTaskFlowAcceptTaskEvent>();
+	AcceptEvt.TaskID = TaskID;
+
+	TaskFlowSystem->BroadcastTaskFlowEvent(TaskFlowEvt);
+
+	const FString Detail = FString::Printf(TEXT("TaskID=%d Acceptor=%s"), TaskID, *GetNameSafe(InAcceptor));
+	LogTaskFlowLifecycle(
+		TEXT("<None>"), TEXT("TaskAcceptedBroadcast"), GetNameSafe(WorldContextObject),
+		*WorldContextObject->GetClass()->GetName(), *Detail);
 }

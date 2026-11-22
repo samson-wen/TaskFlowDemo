@@ -1,0 +1,85 @@
+{
+	"version": 1,
+	"nodes": [
+		{
+			"id": 0,
+			"class": "TaskFlowNode_Start",
+			"x": -96,
+			"y": 32,
+			"properties":
+			{
+			}
+		},
+		{
+			"id": 1,
+			"class": "TaskFlowNode_End",
+			"x": 512,
+			"y": 16,
+			"properties":
+			{
+			}
+		},
+		{
+			"id": 2,
+			"class": "TaskFlowNode_SubFlow",
+			"x": 64,
+			"y": -16,
+			"properties":
+			{
+				"SubFlowAsset": "/Game/TaskFlow/100011.100011"
+			}
+		},
+		{
+			"id": 3,
+			"class": "TaskFlowNode_SubFlow",
+			"x": 64,
+			"y": 96,
+			"properties":
+			{
+				"SubFlowAsset": "/Game/TaskFlow/100012.100012"
+			}
+		},
+		{
+			"id": 4,
+			"class": "TaskFlowNode_And",
+			"x": 272,
+			"y": 16,
+			"properties":
+			{
+				"InputCount": 2
+			}
+		}
+	],
+	"links": [
+		{
+			"fromNode": 0,
+			"fromPin": "Out",
+			"toNode": 2,
+			"toPin": "In"
+		},
+		{
+			"fromNode": 0,
+			"fromPin": "Out",
+			"toNode": 3,
+			"toPin": "In"
+		},
+		{
+			"fromNode": 2,
+			"fromPin": "Out",
+			"toNode": 4,
+			"toPin": "In_0"
+		},
+		{
+			"fromNode": 3,
+			"fromPin": "Out",
+			"toNode": 4,
+			"toPin": "In_1"
+		},
+		{
+			"fromNode": 4,
+			"fromPin": "Out",
+			"toNode": 1,
+			"toPin": "In"
+		}
+	]
+}
